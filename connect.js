@@ -2,7 +2,7 @@
 const sqlite3 = require('sqlite3').verbose();
 
 //creating the DB file!
-const DB = new sqlite3.Database('./site_db.db',sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, connected);
+const DB = new sqlite3.Database('./site.db',sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, connected);
 
 
 //creating the function which connects the DB
@@ -25,19 +25,11 @@ function create_tables()
     //sql statement to create tables!
     let sql_create_tables = 
     `
-     BEGIN TRANSACTION;
+     
      
      Create table if not exists company_info 
      (id integer primary key autoincrement, title TEXT not null, content TEXT not null, company_image text not null);
      
-     Create table if not exists carousel
-     (id integer primary key autoincrement, image_url TEXT not null, title TEXT not null );
-
-     Create table if not exists projects (id integer primary key autoincrement, name TEXT not null, description text NOT NULL, image_url text not null);
-     
-     Create table if not exists contact (id integer primary key autoincrement, email TEXT NOT NULL, phone TEXT not null, address TEXT not null);
-     
-     COMMIT ;
     `
 
     //DB query to create the tables!
@@ -57,4 +49,4 @@ function create_tables()
 create_tables();
 
 //Exporting the DB
-export{DB}
+module.exports = DB;

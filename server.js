@@ -21,6 +21,14 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.static(path.join(__dirname,'upload_images')));
 
 
+//creating the post company's info endpoint!
+app.post('/company_info/post',(res,req)=>{
+
+    //getting body values!
+   
+
+});
+
 //method to configure port!
 app.listen(port, (err)=>{
     //returning an error message if sth goes wrong with the port!
