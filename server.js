@@ -21,13 +21,39 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.static(path.join(__dirname,'upload_images')));
 
 
+
 //creating the post company's info endpoint!
-app.post('/company_info/post',(res,req)=>{
+app.post('/company_info/post',(req,res)=>{
 
     //getting body values!
+   const {title,content,company_image} = req.body;
    
+   //returning an error message if values are empty!
+   if(!title || ! content || ! company_image){
+    return res.status(400).json({message:'Please complete all required inputs'});
+   }
+
+   //creating the sql query to insert data into DB
+   let sql = `INSERT INTO company_info(title,content,company_image) values (?,?,?);`
+
+   //executing the query!
+   DB.run(sql,[title,content,company_image],function(err){
+    
+    //returning an error message if server does not respond!
+    if(err)
+    {
+        return res.status(500).json({message:`Error. Server does not respond:${err.message}`});
+    }
+
+    //if all goes well!
+    return res.status(201).json({message:'Success, data has been posted'});
+
+   });
 
 });
+
+
+
 
 //method to configure port!
 app.listen(port, (err)=>{
