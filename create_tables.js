@@ -1,5 +1,7 @@
 //importing the connect.js file
 const connect = require('./connect.js');
+//importing db
+const DB = require('./connect.js');
      
      //creating the tables!
 function create_company_info_table()
