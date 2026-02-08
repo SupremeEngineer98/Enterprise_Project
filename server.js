@@ -78,6 +78,7 @@ app.get('/company_info/get',(req,res)=>{
         let data = {
             info:
             [{
+         id:row.id,
          title:row.title,
          content:row.content,
          company_image:row.company_image
@@ -92,7 +93,114 @@ app.get('/company_info/get',(req,res)=>{
 
 });
 
+//put endpoint to update company's info!
+app.put('/company_info/put/:id',(req,res)=>{
+    //getting body values!
+   const {title,content,company_image} = req.body;
 
+   //retrieving the id from url!
+   const id = parseInt(req.params.id,10);
+   
+   //returning an error message if values are empty!
+   if(!title || ! content || ! company_image){
+    return res.status(400).json({message:'Please complete all required inputs'});
+   }
+
+   //validating that id exists!
+   let sql_id = 'SELECT * FROM company_info where id =?';
+
+   //executing the query to find out if id exists!
+   DB.get(sql_id,[id],function(err,row){
+    //returning an error message if server does not respond!
+    if(err)
+    {
+        return res.status(500).json({message:`Error. Server does not respond:${err.message}`});
+    }
+     
+     //returning an error message if id does not exist!
+     if(!row)
+     {
+        return res.status(404).json({message:'Id does not exist'});
+     }
+
+     //if id exists!
+      //creating the sql query to insert data into DB
+   let sql = `UPDATE company_info set title = ?, content = ?, company_image = ? where id = ?;`
+
+   //executing the query!
+   DB.run(sql,[title,content,company_image,id],function(err){
+    
+    //returning an error message if server does not respond!
+    if(err)
+    {
+        return res.status(500).json({message:`Error. Server does not respond:${err.message}`});
+    }
+
+    //returning error message if id does not exists!
+    if(this.changes === 0)
+    {
+        return res.status(404).json({message:'Update failed'});
+    }
+
+    //if all goes well!
+    return res.status(201).json({message:'Success, data has been updated'});
+
+   });
+
+   })
+
+  
+
+});
+
+
+//creating the delete endpoint!
+app.delete('/company_info/del/:id',(req,res)=>{
+ //retrieving the id from the url!
+ const id = parseInt(req.params.id, 10);//parsing the id!
+
+ //validating that id exists!
+ let sql_id = 'SELECT * FROM company_info where id =?';
+  
+  //executing the query to find out whether id exists or not!
+  DB.get(sql_id,[id],function(err,row){
+    //returning an error message if server does not respond
+    if(err)
+    {
+        return res.status(500).json({message:`Server does not respond:${err.message}`});
+    }
+
+    //returning an error message if id does not exist!
+    if(!row)
+    {
+        return res.status(404).json({message:'Id does not exist'});
+    }
+
+    //if all goes well!
+     //creating the sql query!
+ let sql = `Delete from company_info where id = ?`;
+
+ //executing the query!
+ DB.run(sql,[id],function(err){
+
+    //returning an error message if server does not respond
+    if(err)
+    {
+        return res.status(500).json({message:`Server does not respond:${err.message}`});
+    }
+
+    //if all goes well!
+    return res.status(200).json({message:`Success, data deleted`});
+    
+
+ });
+
+  })
+
+
+
+
+});
 
 //method to configure port!
 app.listen(port, (err)=>{
