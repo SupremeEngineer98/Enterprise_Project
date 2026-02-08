@@ -9,7 +9,7 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(bodyParser.json());//configuring app to use body-parser!
 
-//importing path modules
+//importing path modules in order to access path!
 const path = require('path');
 
 const port = 4000;//setting port to listen on 4000 socket!
