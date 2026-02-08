@@ -1,7 +1,10 @@
 {
   "name": "api",
   "version": "1.0.0",
+<<<<<<< HEAD
   "description": "",
+=======
+>>>>>>> create/db_connect
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,5 +17,18 @@
     "node": "^25.6.0",
     "nodemon": "^3.1.11",
     "sqlite3": "^5.1.7"
+<<<<<<< HEAD
   }
+=======
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SupremeEngineer98/Enterprise_Project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SupremeEngineer98/Enterprise_Project/issues"
+  },
+  "homepage": "https://github.com/SupremeEngineer98/Enterprise_Project#readme",
+  "description": ""
+>>>>>>> create/db_connect
 }
