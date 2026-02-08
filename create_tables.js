@@ -68,7 +68,7 @@ function create_projects_table(){
 
 
 //function to create projects table!
-function create_projects_table(){
+function create_contacts_table(){
 
     //creating the sql statement!
     let sql_table_contact = `
@@ -98,4 +98,4 @@ create_carousel_table();
 create_projects_table();
 
 //creating contact table!
- create_projects_table();
+ create_contacts_table();

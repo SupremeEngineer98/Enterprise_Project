@@ -202,6 +202,35 @@ app.delete('/company_info/del/:id',(req,res)=>{
 
 });
 
+
+//post projects endpoint!
+app.post('winwise/projects/post',(req,res)=>{
+
+    //creating the body variable!
+    const {name,description,image_url} = req.body;
+
+    //returning an error message if any field is null!
+    if(!name || ! description || ! image_url)
+    {
+        return res.status(400).json({message:'Please complete all required fields'})
+    }
+
+    //creating the sql query!
+    let sql = 'INSERT INTO projects(name,description,image_url)values(?,?,?)';
+
+    //executing the query!
+    DB.run(sql,[name,description,image_url],function(err){
+
+        //returning an error message if server does not respond
+        if(err)
+        {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+        }
+
+        //returning success code/message if all goes well!
+        return res.status(201).json({message:'Project posted with success!'});
+    });
+});
 //method to configure port!
 app.listen(port, (err)=>{
     //returning an error message if sth goes wrong with the port!
