@@ -53,6 +53,45 @@ app.post('/company_info/post',(req,res)=>{
 });
 
 
+//creating the get company's info endpoint!
+app.get('/company_info/get',(req,res)=>{
+
+    //sql query to get company's info
+    let sql = 'SELECT * FROM company_info;'
+
+    //executing query
+    DB.get(sql,[],function(err,row){
+
+        //error message if server does not respond!
+        if(err)
+        {
+            return res.status(500).json({message:`Error from the server:${err.message}`});
+
+        }
+          
+        if(!row)
+        {
+            return res.status(404).json({message:`Couldn't find any data`});
+        }
+
+        //if all goes well creating an array to store the data!
+        let data = {
+            info:
+            [{
+         title:row.title,
+         content:row.content,
+         company_image:row.company_image
+        }]};
+
+        //returning data in json format!
+        return res.status(200).json(data);
+      
+
+        
+    });
+
+});
+
 
 
 //method to configure port!
