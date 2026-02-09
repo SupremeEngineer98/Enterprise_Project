@@ -666,6 +666,36 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
         })
      })
 
+
+     //creating the endpoint which allows users to post contact info!
+     app.post('/contact_info/post',(req,res)=>{
+        //retrieving the body and storing it into an array!
+        const {email,phone,address} = req.body;
+
+        //returning an error message if an input is missing!
+        if(!email || !phone || !address)
+        {
+           return res.status(400).json({message:'Please complete all the required fields'});
+        }
+
+        //creating the insert sql query!
+        let sql = 'INSERT INTO contact(email,phone,address) values (?,?,?)';
+
+        //executing the query!
+        DB.run(sql,[email,phone,address],function(err){
+            //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+             
+            //returning a success message to confirm that post was successful!
+            return res.status(201).json({message:'Success contact info has been submitted'});
+
+
+        })
+     })
+
 //method to configure port!
 app.listen(port, (err)=>{
     //returning an error message if sth goes wrong with the port!
