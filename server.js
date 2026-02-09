@@ -771,7 +771,8 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
                 {
                     id:row.id,
                     email:row.email,
-                    phone:row.phone
+                    phone:row.phone,
+                    adress:row.address
                 }
             )
 
@@ -781,6 +782,74 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
 
         });
         
+     });
+    
+     //creating the put endpoint which allows a user to update contact info!
+     //creating the endpoint which allows users to post contact info!
+     app.put('/contact_info/update/:id',(req,res)=>{
+
+        //retrieving the id!
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if id wasn't provided!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide an id'});
+        }
+        //retrieving the body and storing it into an array!
+        const {email,phone,address} = req.body;
+
+        //returning an error message if an input is missing!
+        if(!email || !phone || !address)
+        {
+           return res.status(400).json({message:'Please complete all the required fields'});
+        }
+
+        //validating that the provided id actually exists!
+        let sql_id = 'SELECT * FROM contact where id = ?';
+
+        //executing the query!
+        DB.get(sql_id,[id],function(err,row){
+
+            //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if id does not exists!
+            if(!id)
+            {
+                return res.status(404).json({message:`The id:${id} does not exist`});
+            }
+
+            //if id exists continuing!
+
+        
+
+        //creating the insert sql query!
+        let sql = 'UPDATE contact set email = ?, phone = ?, address = ?';
+
+        //executing the query!
+        DB.run(sql,[email,phone,address],function(err){
+            //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if update fails!
+            if(this.changes ===0)
+            {
+                return res.status(400).json({message:'Update failed'});
+            }
+             
+            //returning a success message to confirm that update was successful!
+            return res.status(201).json({message:'Success contact info has been updated'});
+
+
+        })
+        })
      });
 
 
