@@ -12,7 +12,7 @@ app.use(bodyParser.json());//configuring app to use body-parser!
 //importing path modules in order to access path!
 const path = require('path');
 
-const port = 4000;//setting port to listen on 4000 socket!
+const port = 3000;//setting port to listen on 4000 socket!
 
 //setting the middleware to parse json
 app.use(bodyParser.urlencoded({extended:true}));
@@ -204,7 +204,7 @@ app.delete('/company_info/del/:id',(req,res)=>{
 
 
 //post projects endpoint!
-app.post('winwise/projects/post',(req,res)=>{
+app.post('/winwise/projects/new_post',(req,res)=>{
 
     //creating the body variable!
     const {name,description,image_url} = req.body;
@@ -214,6 +214,8 @@ app.post('winwise/projects/post',(req,res)=>{
     {
         return res.status(400).json({message:'Please complete all required fields'})
     }
+
+    
 
     //creating the sql query!
     let sql = 'INSERT INTO projects(name,description,image_url)values(?,?,?)';
@@ -231,6 +233,108 @@ app.post('winwise/projects/post',(req,res)=>{
         return res.status(201).json({message:'Project posted with success!'});
     });
 });
+
+//creating the get projects endpoint!
+app.get('/winwise/all/projects',(req,res)=>{
+    //creating the sql query!
+    let sql = 'SELECT * FROM projects;'
+
+    //executing the query!
+    DB.all(sql,[],function(err,rows){
+        //returning an error message if server does not respond
+        if(err)
+        {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+        }
+
+        //returning an error message if there are not any entries in the DB!
+        if(!rows)
+        {
+            return res.status(404).json({message:'Sorry,there are not posted projects yet in the DB'});
+        }
+
+
+        //if rows found creating an array to store all data!
+        data = {projects:[]}
+
+        rows.forEach((row)=>{
+        data.projects.push({
+            id:row.id,
+            project:row.name,
+            description:row.description,
+            image:row.image_url
+
+        }); 
+
+        })
+        //returning the data in JSON format!
+        return res.status(200).json(data);
+
+    })
+})
+
+//creating the put endpoint to update projects!
+app.put('/winwise/update/projects/:id',(req,res)=>{
+
+
+    //retrieving the id from the http!
+    const id = parseInt(req.params.id,10);
+    //creating the body variable!
+    const {name,description,image_url} = req.body;
+
+      //returning an error message if any field is null!
+    if(!id ||!name || ! description || ! image_url)
+    {
+        return res.status(400).json({message:'Please complete all required fields'})
+    }
+
+
+    //validating that the id actually exists!
+    let sql_validate_id = 'SELECT * FROM projects where id = ?';
+
+    //executing the query!
+    DB.get(sql_validate_id,[id],function(err,row){
+        //returning an error message if server does not respond
+        if(err)
+        {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+        }
+
+        //returning an error message if id does not exists!
+        if(!row)
+        {
+            return res.status(400).json({message:'Id does not exist'});
+        }
+
+        //if id has been found!
+         //creating the sql query!
+         let sql = 'Update projects set name = ?, description = ?, image_url = ? where id = ?';
+
+     //executing the query!
+    DB.run(sql,[name,description,image_url,id],function(err){
+
+        //returning an error message if server does not respond
+        if(err)
+        {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+        }
+
+        
+          //returning an error message if update fail!
+         if(this.changes === 0)
+         {
+            return res.status(404).json({message:`Update in project with id:${id} has failed`});
+         }
+               //returning success code/message if all goes well!
+        return res.status(201).json({message:'Project updated with success!'});
+    });
+
+
+    });
+
+        
+
+})
 //method to configure port!
 app.listen(port, (err)=>{
     //returning an error message if sth goes wrong with the port!
