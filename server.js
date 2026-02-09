@@ -614,6 +614,55 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
             return res.status(200).json(data);
 
 
+        });
+        
+     });
+
+
+     //creating the endpoint which enables users to delete a requested image!
+     app.delete('/carousel/image/del/:id',(req,res)=>{
+        //retrieving the id from the url!
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if use didn't provide an id!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide an id'});
+        }
+
+        //creating the sql query to validate if the id actually exists or not!
+        let sql_id = `Select * from carousel where id = ?`;
+
+        //executing the query!
+        DB.get(sql_id,[id],function(err,row){
+            //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if entry with the given id does not exists!
+            if(!row)
+            {
+                return res.status(404).json({message:`Image with the id:${id} cannot be found`});
+            }
+
+            //if id has been found!
+            let sql = 'Delete from carousel where id = ?';
+
+            //executing the query!
+            DB.run(sql,[id],function(err){
+                //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+             //returning a successful message to inform user that the image has been deleted!
+             return res.status(204).json({message:`Success.The image with id:${id} has been deleted`});
+
+            })
+
         })
      })
 
