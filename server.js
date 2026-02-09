@@ -818,14 +818,12 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
             }
 
             //returning an error message if id does not exists!
-            if(!id)
+            if(!row)
             {
                 return res.status(404).json({message:`The id:${id} does not exist`});
             }
 
-            //if id exists continuing!
-
-        
+            //if id exists continuing!        
 
         //creating the insert sql query!
         let sql = 'UPDATE contact set email = ?, phone = ?, address = ?';
@@ -850,7 +848,55 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
 
         })
         })
-     });
+     }); 
+
+      //creating the delete contact info endpoint!
+      app.delete('/contact/info/del/:id',(req,res)=>{
+        //retrieving the id!
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if id wasn't provided!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide an id'});
+        }
+
+        //validating that id exists!
+        let sql_id = 'SELECT * FROM contact where id = ?';
+
+        //executing the query!
+        DB.get(sql_id,[id],function(err,row){
+            //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if id does not exist!
+            if(!row)
+            {
+                 return res.status(404).json({message:`The id:${id} does not exist`});
+            }
+
+            //if id exists continuing!
+            let sql_del = 'DELETE FROM contact where id = ?';
+
+            //executing the query!
+            DB.run(sql_del,[id],function(err){
+                //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+             
+             //returning a success message to inform the user tht the contact informations have been deleted!
+             return res.status(204).json({messag:`Success, the information with id:${id} have been deleted`});
+
+            })
+
+        })
+
+      })
 
 
 //method to configure port!
