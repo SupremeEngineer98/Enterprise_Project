@@ -159,6 +159,12 @@ app.delete('/company_info/del/:id',(req,res)=>{
  //retrieving the id from the url!
  const id = parseInt(req.params.id, 10);//parsing the id!
 
+ //validating that id won't be null!
+ if(!id)
+ {
+    return res.status(400).json({message:'Please provide an id'});
+ }
+
  //validating that id exists!
  let sql_id = 'SELECT * FROM company_info where id =?';
   
@@ -381,7 +387,54 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
         })
     })
 
-        
+
+    //creating the delete project endpoint!
+    app.delete('/winewise/project/del/:id',(req,res)=>{
+        //retrieving the id
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if id wasn't provided!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide an id'});
+        }
+
+        //searching whether id exists or not!
+        let sql_validate = `Select *FROM projects where id =?`;
+
+        //executing the query!
+        DB.get(sql_validate,[id],function(err,row){
+
+            //returning an error message if server does not respond
+            if(err)
+            {
+                return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if id wasn't found!
+            if(!row)
+            {
+                return res.status(404).json({message:`Project with id:${id} does not exist`});
+            }
+
+            //if id exists!
+            let sql_del = `DELETE FROM projects where id = ?`;
+
+            //executing the query!
+            DB.run(sql_del,[id],function(err){
+                  //returning an error message if server does not respond
+            if(err)
+            {
+                return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+             
+             //returning a success message if project was deleted!
+             return res.status(204).json({message:`Success, project with id:${id} has been deleted`});
+
+            })
+
+        })
+    });
 
 
 //method to configure port!
