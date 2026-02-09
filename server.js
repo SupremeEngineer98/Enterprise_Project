@@ -196,7 +196,7 @@ app.delete('/company_info/del/:id',(req,res)=>{
     }
 
     //if all goes well!
-    return res.status(200).json({message:`Success, data deleted`});
+    return res.status(204).json({message:`Success, data deleted`});
     
 
  });
@@ -433,6 +433,36 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
 
             })
 
+        })
+    });
+
+
+    //creating the post carousel pics endpoint!
+    app.post('/post/image/carousel',(req,res)=>{
+
+        //retrieving the body values!
+        const {image_url,title} = req.body;
+
+        //returning an error message if inputs are null!
+        if(!image_url || ! title)
+        {
+            return res.status(400).json({message:'Please complete all the required fields'});
+        }
+
+        //executing the sql query!
+        let sql = 'INSERT into carousel (image_url,title)values(?,?)';
+
+        DB.run(sql,[image_url,title],function(err){
+            
+            
+            //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning a success message if data has been posted!
+            return res.status(201).json({message:'Success data has been posted'});
         })
     });
 
