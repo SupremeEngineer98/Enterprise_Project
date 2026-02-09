@@ -505,6 +505,72 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
     });
 
 
+
+    //endpoint which enables user to update a carousel image!
+    app.put('/carousel/image/update/:id',(req,res)=>{
+        //retrieving the id from the url!
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if id has not been provided!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide an id!'});
+        }
+
+        //creating the array which will hold the body elements!
+        const {image_url,title} = req.body;
+
+        //returning an error message if body is empty!
+        if(!image_url || !title)
+        {
+            return res.status(400).json({message:'Please complete all the inputs'});
+        }
+
+        //creating the sql to validate if id is real!
+        let sql_id = `SELECT * FROM carousel where id = ?`;
+
+        //executing the first query!
+        DB.get(sql_id,[id],function(err,row){
+             //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if id does not exist!
+            if(!row)
+            {
+                return res.status(404).json({message:`Id does not exist`});
+            }
+
+            //if id exists continuing!
+            let sql = 'UPDATE carousel set image_url = ?, title = ?';
+
+            //executing the second query!
+            DB.run(sql,[image_url,title],function(err){
+                 //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+             //returning an error message if update failed!
+             if(this.changes ===0)
+             {
+                return res.status(400).json({message:'Update failed'});
+             }
+
+             //returning a success message if update has been completed!
+             return res.status(201).json({message:`Update was successful`});
+
+            })
+
+        })
+
+        
+    })
+
+
 //method to configure port!
 app.listen(port, (err)=>{
     //returning an error message if sth goes wrong with the port!
