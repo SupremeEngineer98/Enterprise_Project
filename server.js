@@ -15,7 +15,7 @@ const path = require('path');
 const port = 3000;//setting port to listen on 4000 socket!
 
 //setting the middleware to parse json
-app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.json());
 
 //configuring api to read images from the folder upload_images!
 app.use(express.static(path.join(__dirname,'upload_images')));
@@ -332,9 +332,58 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
 
     });
 
+
+});
+    //creating the post method which retrieves only the requested post!
+    app.get('/winwise/view_project/:id',(req,res)=>{
+        //retrieving the id from the URL!
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if user didn't provide the id!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide the id'});
+        }
+
+        //creating the sql query!
+        let sql = 'SELECT * FROM projects where id =?';
+
+        //executing the query!
+        DB.get(sql,[id],function(err,row){
+              //returning an error message if server does not respond
+            if(err)
+            {
+                return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+             
+             //returing an error message if query couldn't find any entries!
+             if(!row)
+             {
+                return res.status(404).json({message:`Project with id:${id} does not exist`});
+             }
+
+             //creating an array if project has been found!
+             let data = {project:[]};
+
+             //pushing the values in the array!
+             data.project.push(
+                {
+                    id:row.id,
+                    project:row.name,
+                    description:row.description,
+                    image:row.image_url
+                }
+                      );
+
+                    //converting data in JSON format!
+                    return res.status(200).json(data);
+
+        })
+    })
+
         
 
-})
+
 //method to configure port!
 app.listen(port, (err)=>{
     //returning an error message if sth goes wrong with the port!
@@ -343,5 +392,5 @@ app.listen(port, (err)=>{
     }
 
     //returning a success message if port is working!
-    console.log(`Success.Connection established into port:${port}`);
+    console.log(`Success.Connection established in port:${port}`);
 })
