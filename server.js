@@ -694,7 +694,47 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
 
 
         })
-     })
+     });
+
+     //endpoint which allows users to retrieve contact info!
+     
+    app.get('/contact/info/get',(req,res)=>{
+
+        //creating the sql query!
+        let sql = 'SELECT * FROM contact';
+
+        //executing the query!
+        DB.all(sql,[],function(err,rows){
+              //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if there isn't at least one contact info inside the DB!
+            if(!rows)
+            {
+                return res.status(404).json({message:`Contacts could not be found`});
+            }
+
+            //if images exist!
+            let data = {contacts:[]};
+
+            //pushing data to the array via forEach loop!
+            rows.forEach((row)=>{
+                data.contacts.push({
+                    id:row.id,
+                    email:row.image_email,
+                    phone:row.phone,
+                    address:row.address
+                });
+            });
+
+            //returning data in json format!
+            return res.status(200).json(data);
+        })
+    });
+
 
 //method to configure port!
 app.listen(port, (err)=>{
