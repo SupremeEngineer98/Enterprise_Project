@@ -734,6 +734,54 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
             return res.status(200).json(data);
         })
     });
+           
+    //creating the endpoint which allows user to retrive one requested contact info!
+     app.get('/contact/info/get/:id',(req,res)=>{
+        //retrieving the id from url!
+        const id = parseInt(req.params.id,10);
+
+        //returning an error message if use didn't provide an id!
+        if(!id)
+        {
+            return res.status(400).json({message:'Please provide an id'});
+        }
+
+        //creating the sql query!
+        let sql = 'SELECT * FROM contact where id = ?';
+
+        //executing the query!
+        DB.get(sql,[id],function(err,row){
+                 //returning an error message if server does not respond
+            if(err)
+            {
+            return res.status(500).json({message:`Server does not respond:${err.message}`});
+            }
+
+            //returning an error message if entry with the given id does not exists!
+            if(!row)
+            {
+                return res.status(404).json({message:`Contact with the id:${id} cannot be found`});
+            }
+
+            //if image exists creating an array to store it!
+            let data = {contact:[]}
+            
+            //pushing data in the array!
+            data.contact.push(
+                {
+                    id:row.id,
+                    email:row.email,
+                    phone:row.phone
+                }
+            )
+
+            //returning data in json format!
+            return res.status(200).json(data);
+
+
+        });
+        
+     });
 
 
 //method to configure port!
