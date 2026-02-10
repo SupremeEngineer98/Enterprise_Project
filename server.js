@@ -18,7 +18,7 @@ const port = 3000;//setting port to listen on 4000 socket!
 app.use(bodyParser.json());
 
 //configuring api to read images from the folder upload_images!
-app.use(express.static(path.join(__dirname,'upload_images')));
+app.use('/upload_images',express.static(path.join(__dirname,'upload_images')));
 
 //configuring the api to server the html page!
 app.use(express.static(path.join(__dirname, '../site/HomePage')));
@@ -730,7 +730,7 @@ app.put('/winwise/update/projects/:id',(req,res)=>{
             rows.forEach((row)=>{
                 data.contacts.push({
                     id:row.id,
-                    email:row.image_email,
+                    email:row.email,
                     phone:row.phone,
                     address:row.address
                 });
