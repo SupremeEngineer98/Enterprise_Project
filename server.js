@@ -20,7 +20,13 @@ app.use(bodyParser.json());
 //configuring api to read images from the folder upload_images!
 app.use(express.static(path.join(__dirname,'upload_images')));
 
+//configuring the api to server the html page!
+app.use(express.static(path.join(__dirname, '../site/HomePage')));
 
+//route to serve the html site!
+app.get('/',(req,res)=>{
+  res.sendFile(path.join(__dirname, '../site/HomePage', 'index.html'));
+});
 
 //creating the post company's info endpoint!
 app.post('/company_info/post',(req,res)=>{
