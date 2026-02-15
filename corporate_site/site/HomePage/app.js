@@ -162,7 +162,7 @@ const projectId = this.getAttribute('data-id');
  })
   //returning the data!
   .then(data=>{
-    console.log(data);
+    
 
     //access to the modal body in order to append the image!
       const modalFooter = document.querySelector('.modal-footer');
@@ -199,14 +199,52 @@ const projectId = this.getAttribute('data-id');
   //getting project's id 1 data!
   project_det.innerHTML = data.project[0].description;
 
-  
-
-    
+     
 
   })
+  .catch(error=>{
+        //catching the error to allow users see it!
+        console.log(`Error cannot fetch the data:${error.message}`);
+    })
 
 }
 
+
+//creating a new function to fetch about us content!
+function fetch_aboutUs(){
+   //accessing the html element which is responsible to store the about us text!
+   about_text = document.getElementById('about_content');
+    
+   //using the fetch method to fetch the content from the API!
+   fetch('/company_info/get')
+   .then(response=>{//retrieving the response from the API!
+      //returning an error message if the API fail  to respond!
+      if(!response.ok){
+        throw new Error(`Error. Failed to fetch:${error.message}`);
+
+      }
+      //returning data in json format!
+      return response.json();
+   })
+   //returning the fetched data if all goes well!
+   .then(data=>{
+    console.log(data);//console logging the data to see what the api sends back!
+
+     //creating the new html element to store the text!
+     text_data = document.createElement('p');
+
+     //storing the data to the element!
+     text_data.innerHTML = data.info[0].content;
+
+     //appending text_data to the about_text
+     about_text.append(text_data);
+   })
+   .catch(error=>{
+    //catching the error to send it back!
+    console.log(`Error cannot fetch the data:${error.message}`);
+   })
+
+}
 fetch_images();//using the function to fetch the images
 
 //calling the function to display the fetched text
@@ -226,4 +264,6 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
+//calling the method to return the about us content!
+fetch_aboutUs();
 

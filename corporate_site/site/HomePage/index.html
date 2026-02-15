@@ -18,7 +18,8 @@
   </div>
   <nav>
     <a href="#hero">Home</a>
-    <a href="#about">About</a>
+    <a href="#" data-bs-toggle="modal" data-bs-target="#aboutModal" id="aboutLink">About Us</a>
+
     <a href="#portfolio">Projects</a>
     <a href="#contact" class="nav-btn">Book a meeting</a>
   </nav>
@@ -88,6 +89,26 @@
 
     </div>
   </div>
+  </div>
+</div>
+
+<!---Modal window to display about us content-->
+
+<div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="aboutModalLabel">About us</h5>
+        
+      </div>
+      <div class="modal-body" id="about_content">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        
+      </div>
+    </div>
   </div>
 </div>
 
