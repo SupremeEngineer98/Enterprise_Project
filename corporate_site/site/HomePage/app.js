@@ -238,6 +238,13 @@ function fetch_aboutUs(){
 
      //appending text_data to the about_text
      about_text.append(text_data);
+
+     //accessing the img element to fetch company's logo!
+     image_logo = document.getElementById('logo_img');
+
+     //fetching the image!
+     image_logo.src = data.info[0].company_image;
+     image_logo.style.width = "100%";
    })
    .catch(error=>{
     //catching the error to send it back!
