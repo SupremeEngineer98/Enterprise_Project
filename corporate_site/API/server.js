@@ -32,18 +32,18 @@ app.get('/',(req,res)=>{
 app.post('/company_info/post',(req,res)=>{
 
     //getting body values!
-   const {title,content,company_image} = req.body;
+   const {title,content,company_image,mission_statements} = req.body;
    
    //returning an error message if values are empty!
-   if(!title || ! content || ! company_image){
+   if(!title || ! content || ! company_image || ! mission_statements){
     return res.status(400).json({message:'Please complete all required inputs'});
    }
 
    //creating the sql query to insert data into DB
-   let sql = `INSERT INTO company_info(title,content,company_image) values (?,?,?);`
+   let sql = `INSERT INTO company_info(title,content,company_image,mission_statements) values (?,?,?,?);`
 
    //executing the query!
-   DB.run(sql,[title,content,company_image],function(err){
+   DB.run(sql,[title,content,company_image,mission_statements],function(err){
     
     //returning an error message if server does not respond!
     if(err)
@@ -87,7 +87,8 @@ app.get('/company_info/get',(req,res)=>{
          id:row.id,
          title:row.title,
          content:row.content,
-         company_image:row.company_image
+         company_image:row.company_image,
+         mission_statements:row.mission_statements
         }]};
 
         //returning data in json format!
@@ -102,13 +103,13 @@ app.get('/company_info/get',(req,res)=>{
 //put endpoint to update company's info!
 app.put('/company_info/put/:id',(req,res)=>{
     //getting body values!
-   const {title,content,company_image} = req.body;
+   const {title,content,company_image,mission_statements} = req.body;
 
    //retrieving the id from url!
    const id = parseInt(req.params.id,10);
    
    //returning an error message if values are empty!
-   if(!title || ! content || ! company_image){
+   if(!title || ! content || ! company_image || ! mission_statements){
     return res.status(400).json({message:'Please complete all required inputs'});
    }
 
@@ -131,10 +132,10 @@ app.put('/company_info/put/:id',(req,res)=>{
 
      //if id exists!
       //creating the sql query to insert data into DB
-   let sql = `UPDATE company_info set title = ?, content = ?, company_image = ? where id = ?;`
+   let sql = `UPDATE company_info set title = ?, content = ?, company_image = ?, mission_statements = ? where id = ?;`
 
    //executing the query!
-   DB.run(sql,[title,content,company_image,id],function(err){
+   DB.run(sql,[title,content,company_image,mission_statements,id],function(err){
     
     //returning an error message if server does not respond!
     if(err)

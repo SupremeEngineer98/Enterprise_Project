@@ -71,7 +71,7 @@ function fetch_info(){
         
         //creating a variable to display the info!
         const text = document.createElement('p');//creating a <p> element!
-         text.innerHTML = data.info[0].content;
+         text.innerHTML = data.info[0].mission_statements;
         info.appendChild(text);//appending the text!
 
         //creating a variable to access the logo section in order to fetch the logo!
