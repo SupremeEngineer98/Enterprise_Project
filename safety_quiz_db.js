@@ -28,3 +28,6 @@ db.close()//closing the connection!
 }
 
 
+//exporting database file!
+module.exports = db;
+
