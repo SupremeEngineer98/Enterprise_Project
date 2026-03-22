@@ -3,7 +3,7 @@ const db = require('./safety_quiz_db.js');//creating db's object!
 //creating quiz table!
 const create_quiz_table = db.prepare(
 `
- Create table if not exists quiz
+ Update table quiz set
  (
         id          INTEGER     PRIMARY KEY AUTOINCREMENT,
         title       TEXT        NOT NULL,
