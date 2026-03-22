@@ -1,11 +1,11 @@
 const db = require('./safety_quiz_db.js');//creating db's object!
 
 //creating quiz_assignment table!
-const create_quiz_attempts_table = db.prepare(
+const create_quiz_assignment_table = db.prepare(
 `
- Create table if not exists quiz_attempts
+ Create table if not exists quiz_assignment
  (
-         id          INTEGER     PRIMARY KEY AUTOINCREMENT,
+        id          INTEGER     PRIMARY KEY AUTOINCREMENT,
         quiz_id     INTEGER     NOT NULL,
         user_id     INTEGER     NOT NULL,
         assigned_at TEXT        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -23,8 +23,8 @@ const create_quiz_attempts_table = db.prepare(
 //try-catch block to handle errors!
 try{
     
-    create_quiz_attempts_table.run();//executing the query!
-    console.log('Quiz_attempts table has been created with success');
+    create_quiz_assignment_table.run();//executing the query!
+    console.log('Quiz_assignment table has been created with success');
 
 }catch(err)
 {

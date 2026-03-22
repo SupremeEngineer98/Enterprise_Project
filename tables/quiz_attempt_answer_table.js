@@ -1,7 +1,7 @@
 const db = require('./safety_quiz_db.js');//creating db's object!
 
 //creating quiz_attempt_answer table!
-const create_quiz_attempt_answer_table = db.prepare(
+const create_quiz_attempts_answer_table = db.prepare(
 `
  Create table if not exists quiz_attempt_answer
  (
