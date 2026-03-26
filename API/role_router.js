@@ -105,7 +105,93 @@ router.get('/:id',(req,res)=>{
     }
 });
 
+//put role endpoint!
+router.put('/:id',(req,res)=>{
+    //retrieve the id from the paremeters!
+    const id = parseInt(req.params.id, 10);
+
+    //retrieving the body!
+    const {name} = req.body;
+
+    //returning an error message if id is null or not a number!
+    if(!Number.isInteger(id))
+    {
+        return res.status(400).json({error: `Please provide the required id`});
+
+    }
+
+    //returning an error message if name is null!
+    if(!name)
+    {
+        return res.status(400).json({error: `Please complete all the inputs`});
+
+    }
+
+    //creating the query!
+    try{
+        
+        //creating the statement!
+        let stmt = db.prepare(`UPDATE role set name = ?  where id = ?`);
+
+        //executing the query!
+        let data = stmt.run(name,id);
+
+        //returning an error message if entry with the provided id does not exist!
+        if(data.changes === 0)
+        {
+            return res.status(404).json({message:`Cannot find any roles under the id:${id}`});
+        }
+
+        //returning roles into json format!
+        return res.status(201).json({message:`Role has been updated with success`});
+    }catch(err)
+    {
+        return res.status(500).json({error: err.message});//returning an error message if server does not respond!
+    }
 
 
+});
+
+
+//delete role endpoint!
+
+router.delete('/:id',(req,res)=>{
+    //retrieve the id from the paremeters!
+    const id = parseInt(req.params.id, 10);
+
+
+    //returning an error message if id is null or not a number!
+    if(!Number.isInteger(id))
+    {
+        return res.status(400).json({error: `Please provide the required id`});
+
+    }
+ 
+
+    //creating the query!
+    try{
+        
+        //creating the statement!
+        let stmt = db.prepare(`Delete from role where id = ?`);
+
+        //executing the query!
+        let del_role = stmt.run(id);
+
+        //returning an error message if entry with the provided id does not exist!
+        if(del_role.changes === 0)
+        {
+            return res.status(404).json({message:`Cannot find any roles under the id:${id}`});
+        }
+
+        //returning roles into json format!
+        return res.status(200).json({message:`Role has been deleted success`});
+
+    }catch(err)
+    {
+        return res.status(500).json({error: err.message});//returning an error message if server does not respond!
+    }
+
+
+});
 
 module.exports = router;
