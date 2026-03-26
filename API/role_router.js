@@ -42,5 +42,33 @@ router.post('/',(req,res)=>{
 
 
 
+//get roles endpoint!
+router.get('/',(req,res)=>{
+
+    //creating the query!
+    try{
+        
+        //creating the statement!
+        let stmt = db.prepare(`SELECT * FROM role`);
+
+        //executing the query!
+        let info = stmt.all();
+
+        //returning an error message if there are not any entries in the table!
+        if(info.length === 0)
+        {
+            return res.status(400).json({message:`Cannot find any roles`});
+        }
+
+        //returning roles into json format!
+        return res.status(200).json(info);
+    }catch(err)
+    {
+        return res.status(500).json({error: err.message});//returning an error message if server does not respond!
+    }
+})
+
+
+
 
 module.exports = router;
