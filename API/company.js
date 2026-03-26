@@ -106,7 +106,49 @@ router.get('/:id',(req,res)=>{
 });
 
 
+//put company details endpoint. Update a specific row using its id!!
+router.put('/:id',(req,res)=>{
+    //retrieving the requested id from the url!
+    const id = parseInt(req.params.id, 10);
+      //creating an array to store all attributes!
+    const {name, status} = req.body;
 
+    //validating that inputs won't be null!
+    if(!name || !status || !id)
+    {
+        return res.status(400).json({error: `Please complete all inputs`});
+        
+    }
+
+    //insert into db!
+    try{
+        //query to insert data into the db!
+        let stmt = db.prepare(`Update  company set name = ?, status =? where id =?`);
+
+        const info = stmt.run(name,status,id)//executing the stmt!
+
+        //returning an error message if id does not exists!
+        if(info.changes === 0)
+        {
+            return res.status(404).json({error: `The company with id:${id} does not exist`});
+        }
+
+        //returning a successful message if all goes well!!
+        return res.status(201).json({message:'Data has been updated with success'});
+
+    }catch(err)//handling all the possible errors!
+    {
+        
+        
+        //handling unique constaint error!
+        if(err.message.includes('UNIQUE'))// returning an error message if company's name already exist!
+        {
+            return res.status(409).json({error: 'Company already exists'});
+        }
+        return res.status(500).json({error: err.message});//returning an error message if server does not respond!
+    }
+    
+});
 
 
 //exporting the router!
