@@ -57,7 +57,7 @@ router.get('/',(req,res)=>{
         //returning an error message if there are not any entries in the table!
         if(info.length === 0)
         {
-            return res.status(400).json({message:`Cannot find any roles`});
+            return res.status(404).json({message:`Cannot find any roles`});
         }
 
         //returning roles into json format!
@@ -66,7 +66,44 @@ router.get('/',(req,res)=>{
     {
         return res.status(500).json({error: err.message});//returning an error message if server does not respond!
     }
-})
+});
+
+
+//get a specific role by its id endpoint!
+
+router.get('/:id',(req,res)=>{
+    //retrieve the id from the paremeters!
+    const id = parseInt(req.params.id, 10);
+
+    //returning an error message if id is null or not a number!
+    if(!Number.isInteger(id))
+    {
+        return res.status(400).json({error: `Please provide the required id`});
+
+    }
+
+    //creating the query!
+    try{
+        
+        //creating the statement!
+        let stmt = db.prepare(`SELECT * FROM role where id = ?`);
+
+        //executing the query!
+        let info = stmt.get(id);
+
+        //returning an error message if entry with the provided id does not exist!
+        if(!info)
+        {
+            return res.status(400).json({message:`Cannot find any roles under the id:${id}`});
+        }
+
+        //returning roles into json format!
+        return res.status(200).json(info);
+    }catch(err)
+    {
+        return res.status(500).json({error: err.message});//returning an error message if server does not respond!
+    }
+});
 
 
 
