@@ -5,6 +5,9 @@ const cors = require('cors');
 const db = require('../database/tables/safety_quiz_db.js');
 const companyRouter = require('./company'); //mounting the company router endpoint!
 
+//mounting the roles router endpoint!
+const rolesRouter = require('./role_router')
+
 //initiating the app!
 const app = express();
 //initiating the port that the server will hear!
@@ -15,7 +18,9 @@ app.use(cors());
 //enabling the app to use express!
 app.use(express.json());
 
-app.use('/company', companyRouter); //router prefix!
+app.use('/company', companyRouter); //company router prefix!
+
+app.use('/role',rolesRouter) //roles router prefix!
 
 //verifying that the api is up and running!
 app.get('/', (req, res) => {
@@ -28,4 +33,7 @@ app.get('/', (req, res) => {
 app.listen(port, ()=>{
     console.log('The api is listening to the port 3000');
 });
+
+
+
 
