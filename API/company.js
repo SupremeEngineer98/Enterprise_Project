@@ -51,21 +51,23 @@ router.get('/', (req,res)=>{
         //executing the stmt!
         let companies = stmt.all();
 
+        //returning an error message if table is empty!
+        if(companies.length === 0)
+        {
+            return res.status(404).json({message:`There aren't any companies registered yet`})
+        }
+
         //returning the array with the companies!
         return res.status(200).json(companies);
 
 
     }catch(err)
     {
-        //returning an error message if table is empty!
-        if(companies.length === 0)
-        {
-            return res.status(404).json({message:`There aren't any companies registered yet`})
-        }
+        //returning an error message if server does not respond!
+    return res.status(500).json({error: err.message});
         
     }
-    //returning an error message if server does not respond!
-    return res.status(500).json({error: err.message});
+    
 })
 
 //get a specific company by its id endpoint!
@@ -74,7 +76,7 @@ router.get('/:id',(req,res)=>{
     const id = parseInt(req.params.id, 10);
 
     //returning an error message if id has not been provided!
-    if(!id)
+    if(!Number.isInteger(id))
     {
         return res.status(400).json({error: `Please provide the required id`});
     }
@@ -114,7 +116,7 @@ router.put('/:id',(req,res)=>{
     const {name, status} = req.body;
 
     //validating that inputs won't be null!
-    if(!name || !status || !id)
+    if(!name || !status || !Number.isInteger(id))
     {
         return res.status(400).json({error: `Please complete all inputs`});
         
@@ -150,6 +152,42 @@ router.put('/:id',(req,res)=>{
     
 });
 
+
+//delete company by its endpoint!
+router.delete('/:id',(req,res)=>{
+    //retrieving the id from the url!
+    const id = parseInt(req.params.id, 10);
+
+    //return an error message if id is null!
+    if(!Number.isInteger(id))
+    {
+        return res.status(400).json({message:`Please complete all the required fields!`});
+    }
+
+    //creating the sql query!
+    try{
+
+        //create the statement!
+        let stmt = db.prepare(`Delete from company where id = ?`);
+
+        //executing the query!
+        let del_info = stmt.run(id);
+
+        //return an error message if id does not exist!
+        if(del_info.changes === 0)
+        {
+            return res.status(404).json({message:`Registration with id:${id} does not exist`});
+        }
+
+        //if deletion happens returning a successful message!
+        return res.status(200).json({message:`The company with id:${id} has been deleted!!`});
+
+    }catch(err)
+    {
+        //returning an error message in case of a server error!
+        return res.status(500).json({error:err.message});
+    }
+})
 
 //exporting the router!
 module.exports = router;
