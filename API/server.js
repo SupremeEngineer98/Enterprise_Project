@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('../database/tables/safety_quiz_db.js');
+const companyRouter = require('./company'); //mounting the company router endpoint!
 
 //initiating the app!
 const app = express();
@@ -12,7 +13,9 @@ const port = 3000;
 // enabling the app to use cors!
 app.use(cors());
 //enabling the app to use express!
-app.use(express());
+app.use(express.json());
+
+app.use('/company', companyRouter); //router prefix!
 
 //verifying that the api is up and running!
 app.get('/', (req, res) => {
