@@ -68,6 +68,42 @@ router.get('/', (req,res)=>{
     return res.status(500).json({error: err.message});
 })
 
+//get a specific company by its id endpoint!
+router.get('/:id',(req,res)=>{
+    //retrieving the id the params!
+    const id = parseInt(req.params.id, 10);
+
+    //returning an error message if id has not been provided!
+    if(!id)
+    {
+        return res.status(400).json({error: `Please provide the required id`});
+    }
+
+    //creating the query!
+    try{
+
+        //creating the query!
+        let stmt = db.prepare(`SELECT * FROM company where id = ?`);
+
+        //executing the query!
+        let company = stmt.get(id)
+
+          if(!company) //returning an error message if company does not exists!
+        {
+            
+         return res.status(404).json({message:`No company found under this id`});
+        }
+
+        //returning a success message with the company's details!
+        return res.status(200).json(company);
+
+    }catch(err)
+    {
+      return res.status(500).json({error: err.message});//returning an error message in case of a server error!
+        
+    }
+    
+});
 
 
 
