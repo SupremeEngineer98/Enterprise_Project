@@ -40,6 +40,34 @@ router.post('/', (req,res)=>{
     
 });
 
+//get all companies endpoint!
+router.get('/', (req,res)=>{
+
+    //executing the sql query!
+    try{
+        //creating a prepare stament!
+        let stmt = db.prepare(`SELECT * FROM company`);
+
+        //executing the stmt!
+        let companies = stmt.all();
+
+        //returning the array with the companies!
+        return res.status(200).json(companies);
+
+
+    }catch(err)
+    {
+        //returning an error message if table is empty!
+        if(companies.length === 0)
+        {
+            return res.status(404).json({message:`There aren't any companies registered yet`})
+        }
+        
+    }
+    //returning an error message if server does not respond!
+    return res.status(500).json({error: err.message});
+})
+
 
 
 //exporting the router!
