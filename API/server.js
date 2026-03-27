@@ -1,21 +1,30 @@
 //configuring the connection with the DB!
 
-
-
 require('../database/db_init');//creating the tables if they do not exist!
 
 //creating new objects for express, cors and the DB!
 const express = require('express');
+
 const cors = require('cors');
+
 const db = require('../database/tables/safety_quiz_db.js');
+
 const companyRouter = require('./company'); //mounting the company router endpoint!
+
 const verifyToken = require('./middleware');//mounting the middleware!
-console.log('verifyToken:', verifyToken);
+
 //mounting the auth route!
 const authRouter = require('./auth_route');
 
 //mounting the roles router endpoint!
 const rolesRouter = require('./role_router')
+
+//mounting the register router endpoint!
+//const registerRouter = require('./register_router');
+
+//register prefix!
+app.use('/register_router', registerRouter)
+
 
 //initiating the app!
 const app = express();
@@ -33,6 +42,7 @@ app.use('/role',rolesRouter) //roles router prefix!
 
 //auth prefix!
 app.use('/auth_route', authRouter);
+
 
 //verifying that the api is up and running!
 app.get('/', (req, res) => {
