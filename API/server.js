@@ -22,6 +22,9 @@ const rolesRouter = require('./role_router')
 //mounting the register router endpoint!
 const registerRouter = require('./register_route');
 
+//mounting user's endpoints!
+const usersRouter = require('./users_route');
+
 
 //initiating the app!
 const app = express();
@@ -54,7 +57,10 @@ app.use('/register_route', registerRouter)
 
 app.use('/company', companyRouter); //company router prefix!
 
-app.use('/role',rolesRouter) //roles router prefix!
+app.use('/role',rolesRouter); //roles router prefix!
+
+//users prefix!
+app.use('/users',usersRouter);
 
 
 

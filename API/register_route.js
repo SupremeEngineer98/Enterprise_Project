@@ -1,5 +1,5 @@
 //this file contains all endpoints to create the registration process!
-//creating new objects for expressand the DB!
+//creating new objects for express and the DB!
 const express = require('express');
 
 const db = require('../database/tables/safety_quiz_db.js');//db object!
