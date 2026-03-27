@@ -3,6 +3,13 @@
 //creating the jwtwebtoken!
 const jwt = require('jsonwebtoken');//creating the token object!
 
+//db object!
+const db = require('../database/tables/safety_quiz_db.js');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'SECRET_KEY';//secret key object!
+
+//jwt verification + active verification!
+
 //function to verify token from other routes!
 function verifyToken(req,res,next)
 {
@@ -19,10 +26,29 @@ function verifyToken(req,res,next)
       //authorization process!
 try{
 
-            const decoded = jwt.verify(token,"SECRET_KEY");//decoding the token!
+            const decoded = jwt.verify(token, JWT_SECRET);//decoding the token!
 
-            req.user = decoded;//decoding user's toekn!
+            //checking if user exists and is active!
+        const user = db.prepare(`SELECT * FROM user WHERE id = ?`).get(decoded.userId);
+         
+        //return error message if user does not exists or he is inactive!
+        if(!user || user.is_active !== 1)
+        {
+          return res.status(401).json({Error:`User is inactive or not found!`});
+        }
 
+        //validating whether company exists or not!
+        const company = db.prepare(`SELECT * FROM company WHERE id = ?`).get(decoded.companyId);
+
+        //return error message if company does not exist or is inactive!
+        if(!company || company.status !== 'ACTIVE')
+        {
+          return res.status(401).json({Error: `The company is suspended or not found`});
+
+        }
+
+        //decoding user's info!
+        req.user = decoded;
             next(); //callback function to assign the authorization to the next middleware!
 
  }catch(err){ //returning an error message if token is invalid!
@@ -33,4 +59,4 @@ try{
 
 };
 
-module.exports = verifyToken;
+module.exports = { verifyToken, tenantScope, authorizeRoles };

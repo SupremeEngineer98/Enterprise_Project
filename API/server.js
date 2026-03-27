@@ -11,7 +11,7 @@ const db = require('../database/tables/safety_quiz_db.js');
 
 const companyRouter = require('./company'); //mounting the company router endpoint!
 
-const verifyToken = require('./middleware');//mounting the middleware!
+const { verifyToken } = require('./middleware');//mounting the middleware!
 
 //mounting the auth route!
 const authRouter = require('./auth_route');
@@ -20,10 +20,7 @@ const authRouter = require('./auth_route');
 const rolesRouter = require('./role_router')
 
 //mounting the register router endpoint!
-//const registerRouter = require('./register_router');
-
-//register prefix!
-app.use('/register_router', registerRouter)
+const registerRouter = require('./register_route');
 
 
 //initiating the app!
@@ -31,25 +28,36 @@ const app = express();
 //initiating the port that the server will hear!
 const port = 3000;
 
+
 // enabling the app to use cors!
 app.use(cors());
 //enabling the app to use express!
 app.use(express.json());
 
-app.use('/company', companyRouter); //company router prefix!
-
-app.use('/role',rolesRouter) //roles router prefix!
-
 //auth prefix!
 app.use('/auth_route', authRouter);
 
 
+
+//public!
 //verifying that the api is up and running!
 app.get('/', (req, res) => {
   res.send(' Server running!');
   console.log('api is up and running');
 
 });
+
+//verify token prefix!
+app.use(verifyToken);
+
+//register prefix!
+app.use('/register_route', registerRouter)
+
+app.use('/company', companyRouter); //company router prefix!
+
+app.use('/role',rolesRouter) //roles router prefix!
+
+
 
 //initiating the connection with port!
 app.listen(port, ()=>{
