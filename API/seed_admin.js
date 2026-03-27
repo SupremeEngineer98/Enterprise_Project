@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");//bcrypt to encypt the pass!
-const db = require("./safety_quiz_db.js");//creating a db's object!
+const db = require('../database/tables/safety_quiz_db.js');//creating a db's object!
 
 async function seedAdmin() {
     // validating if admin already exists!
@@ -15,7 +15,7 @@ async function seedAdmin() {
   db.prepare(`
         INSERT INTO user (company_id, email, password_hash, role_id)
         VALUES (?, ?, ?, ?)
-    `).run(1, "admin@system.com", password_hash, 1);
+    `).run(1, "admin@system.com", password_hash, 2);
 
    
 
