@@ -59,4 +59,24 @@ try{
 
 };
 
+// tenantScope
+function tenantScope(req, res, next) {
+    const requestedCompanyId = parseInt(req.params.companyId, 10);
+    if (requestedCompanyId && requestedCompanyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Cross-tenant access is not allowed.' });
+    }
+    req.companyId = req.user.companyId;
+    next();
+}
+
+// authorizeRoles
+function authorizeRoles(...roles) {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Forbidden. Insufficient permissions.' });
+        }
+        next();
+    };
+}
+
 module.exports = { verifyToken, tenantScope, authorizeRoles };
