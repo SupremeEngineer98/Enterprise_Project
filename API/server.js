@@ -5,6 +5,9 @@ const cors = require('cors');
 const db = require('../database/tables/safety_quiz_db.js');
 const companyRouter = require('./company'); //mounting the company router endpoint!
 
+//mounting the auth route!
+const authRouter = require('./auth_route');
+
 //mounting the roles router endpoint!
 const rolesRouter = require('./role_router')
 
@@ -21,6 +24,9 @@ app.use(express.json());
 app.use('/company', companyRouter); //company router prefix!
 
 app.use('/role',rolesRouter) //roles router prefix!
+
+//auth prefix!
+app.use('/auth_route', authRouter);
 
 //verifying that the api is up and running!
 app.get('/', (req, res) => {
