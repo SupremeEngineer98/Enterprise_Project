@@ -79,4 +79,4 @@ function authorizeRoles(...roles) {
     };
 }
 
-module.exports = { verifyToken, tenantScope, authorizeRoles };
+module.exports = { verifyToken, tenantScope, authorizeRoles, JWT_SECRET };

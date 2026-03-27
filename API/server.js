@@ -28,7 +28,6 @@ const app = express();
 //initiating the port that the server will hear!
 const port = 3000;
 
-
 // enabling the app to use cors!
 app.use(cors());
 //enabling the app to use express!

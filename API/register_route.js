@@ -16,7 +16,7 @@ router.use(verifyToken);
 //POST /register/superuser!
 //authorization: administrator only (role_id:2)
 //company and role id assigned by the token!
-router.post('/superuser',verifyToken, authorizeRoles(2), async (req,res)=>{
+router.post('/superuser', authorizeRoles(2), async (req,res)=>{
     const {email, password} = req.body;
 
     //returning an error message if inputs are null!
@@ -59,7 +59,7 @@ router.post('/superuser',verifyToken, authorizeRoles(2), async (req,res)=>{
 //POST /register/user
 //authorization: superuser only (role_id:3)
 //company and role id assigned by the token!
-router.post('/user',verifyToken,authorizeRoles(3),async (req,res)=>{
+router.post('/user',authorizeRoles(3),async (req,res)=>{
      const {email, password} = req.body;
 
     //returning an error message if inputs are null!
@@ -101,3 +101,5 @@ router.post('/user',verifyToken,authorizeRoles(3),async (req,res)=>{
 });
 
 
+//exporting the register module!
+module.exports = router;
