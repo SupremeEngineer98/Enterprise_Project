@@ -1,10 +1,16 @@
 //configuring the connection with the DB!
+
+
+
+require('../database/db_init');//creating the tables if they do not exist!
+
 //creating new objects for express, cors and the DB!
 const express = require('express');
 const cors = require('cors');
 const db = require('../database/tables/safety_quiz_db.js');
 const companyRouter = require('./company'); //mounting the company router endpoint!
-
+const verifyToken = require('./middleware');//mounting the middleware!
+console.log('verifyToken:', verifyToken);
 //mounting the auth route!
 const authRouter = require('./auth_route');
 
