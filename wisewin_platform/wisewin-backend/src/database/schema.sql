@@ -33,9 +33,11 @@ CREATE TABLE quizzes (
     title TEXT NOT NULL,
     description TEXT NULL,
     source_type TEXT NOT NULL CHECK (source_type IN ('PLATFORM', 'COMPANY')),
+    max_wrong_answers INTEGER NOT NULL DEFAULT 2,
     is_active BOOLEAN NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
 );
@@ -77,12 +79,15 @@ CREATE TABLE quiz_assignments (
 CREATE TABLE quiz_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     assignment_id INTEGER NOT NULL,
+    attempt_number INTEGER NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'ABANDONED')),
     current_score INTEGER NOT NULL DEFAULT 0,
     answered_count INTEGER NOT NULL DEFAULT 0,
+    passed BOOLEAN NULL,
     started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_activity_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME NULL,
+
     FOREIGN KEY (assignment_id) REFERENCES quiz_assignments(id) ON DELETE CASCADE
 );
 
