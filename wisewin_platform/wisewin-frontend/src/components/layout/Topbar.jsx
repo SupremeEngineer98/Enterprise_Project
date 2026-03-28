@@ -10,6 +10,16 @@ export default function Topbar({ title }) {
     navigate("/login");
   };
 
+  const handleChangePassword = () => {
+    if (user?.role === "Administrator") {
+      navigate("/admin/change-password");
+    } else if (user?.role === "Super user") {
+      navigate("/super-user/change-password");
+    } else {
+      navigate("/user/change-password");
+    }
+  };
+
   return (
     <div className="h-16 flex items-center justify-between px-8 bg-white/70 backdrop-blur-xl">
       <div>
@@ -21,6 +31,15 @@ export default function Topbar({ title }) {
           <p className="text-sm font-semibold text-[#000666]">{user?.email}</p>
           <p className="text-xs text-[#454652]">{user?.role}</p>
         </div>
+
+        <button
+          type="button"
+          onClick={handleChangePassword}
+          className="px-4 py-2 rounded-xl bg-[#f5f2ff] text-[#000666] font-semibold hover:bg-[#e8e5ff]"
+        >
+          Change Password
+        </button>
+
         <button
           type="button"
           onClick={handleLogout}

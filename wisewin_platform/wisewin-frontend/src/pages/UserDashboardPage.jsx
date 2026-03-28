@@ -1,91 +1,164 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import QuizCard from "../components/user/QuizCard";
-import CompletedQuizRow from "../components/user/CompletedQuizRow";
+import { quizService } from "../services/quizService";
 
 const sidebarItems = [
   { to: "/user", icon: "dashboard", label: "Dashboard" },
-  { to: "/user/assigned", icon: "quiz", label: "Assigned Quizzes" },
-  { to: "/user/completed", icon: "editor_choice", label: "Completed Assignments" },
-];
-
-const assignedQuizzes = [
-  {
-    assignmentId: 1,
-    title: "Manual Handling",
-    description: "Master correct lifting techniques to prevent workplace injuries.",
-    duration: 15,
-    dueDate: "2026-05-30",
-    status: "NEW",
-  },
-  {
-    assignmentId: 2,
-    attemptId: 45,
-    title: "Working at Height",
-    description: "Essential safety protocols for platform and ladder operations.",
-    duration: 25,
-    dueDate: "2026-05-30",
-    status: "IN_PROGRESS",
-  },
-];
-
-const completedQuizzes = [
-  { title: "Warehouse Safety Fundamentals", completedAt: "2025-10-24", score: 96 },
-  { title: "Forklift Pre-Op Checklist", completedAt: "2025-10-20", score: 82 },
 ];
 
 export default function UserDashboardPage() {
   const navigate = useNavigate();
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleQuizAction = (quiz) => {
-    if (quiz.status === "IN_PROGRESS" && quiz.attemptId) {
-      navigate(`/attempts/${quiz.attemptId}`);
-      return;
+  useEffect(() => {
+    async function loadAssignments() {
+      try {
+        const data = await quizService.getMyAssignments();
+        setAssignments(data);
+      } catch (err) {
+        console.error(err);
+        setError(err.response?.data?.message || "Failed to load assignments");
+      } finally {
+        setLoading(false);
+      }
     }
 
-    navigate(`/assignments/${quiz.assignmentId}/start`);
+    loadAssignments();
+  }, []);
+
+  const handleQuizAction = async (quiz) => {
+    try {
+      if (quiz.status === "IN_PROGRESS" && quiz.attemptId) {
+        navigate(`/attempts/${quiz.attemptId}`);
+        return;
+      }
+
+      const attempt = await quizService.startAttempt(quiz.assignmentId);
+      navigate(`/attempts/${attempt.attemptId}`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Could not start quiz");
+    }
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading user dashboard...</div>;
+  }
+
+  const activeAssignments = assignments.filter((a) => a.status !== "COMPLETED");
+  const completedAssignments = assignments.filter((a) => a.status === "COMPLETED");
 
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="User Dashboard">
       <section className="relative overflow-hidden bg-[#1A237E] rounded-3xl p-10 text-white shadow-[0_30px_60px_rgba(26,35,126,0.3)]">
-        <div className="relative z-10 grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Welcome back</h1>
-            <p className="text-lg opacity-90 max-w-md">
-              Your operational readiness and training certifications are currently active.
-            </p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-            <p className="text-xs uppercase tracking-widest font-bold mb-1">Training Compliance</p>
-            <p className="text-4xl font-black">84%</p>
-            <div className="w-full bg-white/20 h-3 rounded-full overflow-hidden mt-4">
-              <div className="bg-[#EEC209] h-full" style={{ width: "84%" }} />
-            </div>
-          </div>
+        <div className="relative z-10">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+            Welcome back
+          </h1>
+          <p className="text-lg opacity-90 max-w-md">
+            Track your assigned training, complete quizzes, and review your results.
+          </p>
         </div>
       </section>
+
+      {error ? (
+        <div className="p-4 rounded-xl bg-red-50 text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-extrabold text-[#000666] tracking-tight">Training Missions</h2>
+          <h2 className="text-2xl font-extrabold text-[#000666] tracking-tight">
+            Training Missions
+          </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {assignedQuizzes.map((quiz) => (
-            <QuizCard key={quiz.assignmentId} quiz={quiz} onAction={handleQuizAction} />
-          ))}
-        </div>
+        {activeAssignments.length === 0 ? (
+          <div className="rounded-2xl bg-white p-6 text-[#454652] shadow-[0_10px_30px_rgba(26,35,126,0.06)]">
+            No training missions assigned yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {activeAssignments.map((assignment) => (
+              <QuizCard
+                key={assignment.assignmentId}
+                quiz={{
+                  assignmentId: assignment.assignmentId,
+                  attemptId: assignment.attemptId,
+                  title: assignment.quizTitle,
+                  description: `${assignment.description || "Assigned quiz"} • Attempts used: ${assignment.attemptsUsed}`,
+                  dueDate: assignment.dueDate || "No due date",
+                  duration: assignment.totalQuestions || 0,
+                  status: assignment.status,
+                }}
+                onAction={handleQuizAction}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <section>
-        <h2 className="text-2xl font-extrabold text-[#000666] tracking-tight mb-6">Recently Completed</h2>
-        <div className="space-y-2">
-          {completedQuizzes.map((quiz) => (
-            <CompletedQuizRow key={quiz.title} quiz={quiz} />
-          ))}
-        </div>
+        <h2 className="text-2xl font-extrabold text-[#000666] tracking-tight mb-6">
+          Completed Training
+        </h2>
+
+        {completedAssignments.length === 0 ? (
+          <div className="rounded-2xl bg-white p-6 text-[#454652] shadow-[0_10px_30px_rgba(26,35,126,0.06)]">
+            No completed training yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {completedAssignments.map((assignment) => {
+              const passed = assignment.latestPassed === true;
+              const summaryText =
+                assignment.latestPassed === null
+                  ? "Completed attempt"
+                  : passed
+                  ? `Passed on attempt ${assignment.latestAttemptNumber} • Score ${assignment.latestScore}/${assignment.totalQuestions}`
+                  : `Failed on attempt ${assignment.latestAttemptNumber} • Score ${assignment.latestScore}/${assignment.totalQuestions}`;
+
+              return (
+                <div
+                  key={assignment.assignmentId}
+                  className="flex justify-between items-center p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all"
+                >
+                  <div>
+                    <p className="font-medium text-[#000666]">{assignment.quizTitle}</p>
+                    <p className="text-sm text-[#454652]">
+                      {summaryText} • Attempts used: {assignment.attemptsUsed}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                        passed
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {passed ? "Passed" : "Failed"}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/assignments/${assignment.assignmentId}/history`)}
+                      className="px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff]"
+                    >
+                      View History
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </DashboardLayout>
   );

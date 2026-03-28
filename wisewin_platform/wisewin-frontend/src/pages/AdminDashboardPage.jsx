@@ -1,19 +1,52 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import SectionCard from "../components/dashboard/SectionCard";
+import { companyService } from "../services/companyService";
+import { userService } from "../services/userService";
+import { quizService } from "../services/quizService";
 
 const sidebarItems = [
   { to: "/admin", icon: "dashboard", label: "Overview" },
-  { to: "/admin/companies", icon: "business", label: "Companies" },
-  { to: "/admin/quizzes", icon: "quiz", label: "Quiz Builder" },
-];
-
-const companyRows = [
-  { name: "TechFlow Systems", meta: "32 quizzes", date: "Oct 24, 2023" },
-  { name: "Creative Nexus", meta: "13 quizzes", date: "Oct 22, 2023" },
+  { to: "/admin/create-user", icon: "person_add", label: "Create User" },
+  { to: "/admin/create-quiz", icon: "quiz", label: "Create Quiz" },
 ];
 
 export default function AdminDashboardPage() {
+  const [companies, setCompanies] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const [companiesData, usersData, quizzesData] = await Promise.all([
+          companyService.getAllCompanies(),
+          userService.getAllUsers(),
+          quizService.getVisibleQuizzes(),
+        ]);
+
+        setCompanies(companiesData);
+        setUsers(usersData);
+        setQuizzes(quizzesData);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading admin dashboard...</div>;
+  }
+
+  const superUsers = users.filter((u) => u.role === "Super user");
+  const normalUsers = users.filter((u) => u.role === "User");
+
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="Administrator Dashboard">
       <div>
@@ -22,23 +55,30 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard title="Companies" value="1,284" icon="business" />
-        <StatCard title="Super Users" value="452" icon="manage_accounts" />
-        <StatCard title="Users" value="5,236" icon="group" />
-        <StatCard title="Quizzes" value="152" icon="quiz" />
+        <StatCard title="Companies" value={companies.length} icon="business" />
+        <StatCard title="Super Users" value={superUsers.length} icon="manage_accounts" />
+        <StatCard title="Users" value={normalUsers.length} icon="group" />
+        <StatCard title="Quizzes" value={quizzes.length} icon="quiz" />
       </div>
 
       <SectionCard title="Client Intelligence">
         <div className="space-y-2">
-          {companyRows.map((row) => (
-            <div key={row.name} className="p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all flex justify-between items-center">
-              <div>
-                <p className="font-medium text-[#000666]">{row.name}</p>
-                <p className="text-sm text-[#454652]">{row.date}</p>
+          {companies.map((company) => {
+            const companyQuizCount = quizzes.filter((q) => q.companyId === company.id).length;
+
+            return (
+              <div
+                key={company.id}
+                className="p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-medium text-[#000666]">{company.name}</p>
+                  <p className="text-sm text-[#454652]">{company.status}</p>
+                </div>
+                <p className="text-sm text-[#454652]">{companyQuizCount} company quizzes</p>
               </div>
-              <p className="text-sm text-[#454652]">{row.meta}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </SectionCard>
     </DashboardLayout>

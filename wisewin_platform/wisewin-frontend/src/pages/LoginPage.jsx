@@ -11,7 +11,12 @@ import logo from "../assets/logo.svg";
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
-  const [form, setForm] = useState({ email: "", password: "" });
+
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
@@ -26,9 +31,13 @@ export default function LoginPage() {
     try {
       const user = await login(form);
 
-      if (user.role === ROLES.ADMIN) navigate("/admin");
-      else if (user.role === ROLES.SUPER_USER) navigate("/super-user");
-      else navigate("/user");
+      if (user.role === ROLES.ADMIN) {
+        navigate("/admin");
+      } else if (user.role === ROLES.SUPER_USER) {
+        navigate("/super-user");
+      } else {
+        navigate("/user");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     }
@@ -37,11 +46,13 @@ export default function LoginPage() {
   return (
     <AuthLayout>
       <div className="flex justify-center mb-12">
-        <img src={logo} alt="WiseWin Logo" className="h-12" />
+        <img src={logo} alt="WiseWin Logo" className="h-14 w-auto" />
       </div>
 
       <GlassCard>
-        <h2 className="text-3xl font-bold text-white mb-8 text-center">Welcome Back</h2>
+        <h2 className="text-3xl font-bold text-white mb-8 text-center">
+          Welcome Back
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

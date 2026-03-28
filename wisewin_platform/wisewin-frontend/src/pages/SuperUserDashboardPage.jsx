@@ -1,40 +1,82 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import SectionCard from "../components/dashboard/SectionCard";
 import UserRow from "../components/dashboard/UserRow";
+import { userService } from "../services/userService";
+import { quizService } from "../services/quizService";
+import { useAuth } from "../context/AuthContext";
 
 const sidebarItems = [
   { to: "/super-user", icon: "dashboard", label: "Overview" },
-  { to: "/super-user/users", icon: "group", label: "Users" },
-  { to: "/super-user/quizzes", icon: "quiz", label: "Quizzes" },
-  { to: "/super-user/assignments", icon: "assignment_ind", label: "Assignments" },
-];
-
-const users = [
-  { name: "Dimitris", email: "dimitris@example.com", assignedQuizzes: 12, completedQuizzes: 10 },
-  { name: "George", email: "george@example.com", assignedQuizzes: 13, completedQuizzes: 11 },
-  { name: "Alice", email: "alice@example.com", assignedQuizzes: 15, completedQuizzes: 12 },
+  { to: "/super-user/assign", icon: "assignment_add", label: "Assign Quiz" },
 ];
 
 export default function SuperUserDashboardPage() {
+  const { user } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const [usersData, quizzesData] = await Promise.all([
+          userService.getCompanyUsers(user.companyId),
+          quizService.getVisibleQuizzes(),
+        ]);
+
+        const mappedUsers = usersData
+          .filter((u) => u.role === "User")
+          .map((u) => ({
+            name: u.email.split("@")[0],
+            email: u.email,
+            assignedQuizzes: 0,
+            completedQuizzes: 0,
+          }));
+
+        setUsers(mappedUsers);
+        setQuizzes(quizzesData);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (user?.companyId) {
+      loadDashboard();
+    }
+  }, [user]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading super user dashboard...</div>;
+  }
+
+  const companyQuizzes = quizzes.filter(
+    (q) => q.companyId === user.companyId || q.companyId === null
+  );
+
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="Super User Dashboard">
       <div>
         <h1 className="text-3xl font-bold text-[#000666]">Workforce Intelligence</h1>
-        <p className="text-[#454652] mt-2">Monitor employee training progress and compliance.</p>
+        <p className="text-[#454652] mt-2">
+          Monitor employee training progress and manage quiz assignments.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard title="Users" value="152" icon="group" />
-        <StatCard title="Pending Assignments" value="5" icon="schedule" />
-        <StatCard title="Completed Assignments" value="23" icon="check_circle" />
-        <StatCard title="Total Quizzes" value="34" icon="quiz" />
+        <StatCard title="Users" value={users.length} icon="group" />
+        <StatCard title="Pending Assignments" value={0} icon="schedule" />
+        <StatCard title="Completed Assignments" value={0} icon="check_circle" />
+        <StatCard title="Visible Quizzes" value={companyQuizzes.length} icon="quiz" />
       </div>
 
       <SectionCard title="User Intelligence">
         <div className="space-y-2">
-          {users.map((user) => (
-            <UserRow key={user.email} user={user} />
+          {users.map((companyUser) => (
+            <UserRow key={companyUser.email} user={companyUser} />
           ))}
         </div>
       </SectionCard>
