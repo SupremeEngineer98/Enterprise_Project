@@ -55,6 +55,14 @@ This will:
 - create indexes
 - insert seed demo data
 
+
+## Generate API Documentation
+```bash
+npm run docs
+```
+This will generate the full API documentation in the `docs/` folder.
+Open `docs/index.html` in your browser to view it.
+
 ## Run Development Server
 
 ```bash

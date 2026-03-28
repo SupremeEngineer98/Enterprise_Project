@@ -22,6 +22,7 @@
     "node": "^25.8.2"
   },
   "devDependencies": {
+    "apidoc": "^1.2.0",
     "nodemon": "^3.1.14"
   }
 }
