@@ -31,7 +31,8 @@ WiseWin is a multi-role employee training platform that supports:
 ## Installation
 
 ```bash
-npm install
+npm install (this will install all the required dependencies)
+
 ```
 
 ## Environment Variables
