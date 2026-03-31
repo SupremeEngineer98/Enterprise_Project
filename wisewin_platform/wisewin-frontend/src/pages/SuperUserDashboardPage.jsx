@@ -27,15 +27,15 @@ export default function SuperUserDashboardPage() {
           userService.getCompanyUsers(user.companyId),
           quizService.getVisibleQuizzes(),
         ]);
-
+        
         const mappedUsers = usersData
-          .filter((u) => u.role === "User")
-          .map((u) => ({
-            name: u.email.split("@")[0],
-            email: u.email,
-            assignedQuizzes: 0,
-            completedQuizzes: 0,
-          }));
+        .filter((u) => u.role === "User")
+        .map((u) => ({
+          name: u.email.split("@")[0],
+          email: u.email,
+          assignedQuizzes: u.assignedQuizzes ?? 0,
+          completedQuizzes: u.completedQuizzes ?? 0,
+        }));
 
         setUsers(mappedUsers);
         setQuizzes(quizzesData);

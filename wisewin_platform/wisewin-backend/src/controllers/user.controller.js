@@ -189,7 +189,18 @@ export function getCompanyUsers(req, res, next) {
         u.id,
         u.email,
         u.is_active AS isActive,
-        r.name AS role
+        r.name AS role,
+        (
+          SELECT COUNT(*)
+          FROM quiz_assignments qa
+          WHERE qa.user_id = u.id
+        ) AS assignedQuizzes,
+        (
+          SELECT COUNT(*)
+          FROM quiz_assignments qa
+          WHERE qa.user_id = u.id
+            AND qa.status = 'COMPLETED'
+        ) AS completedQuizzes
       FROM users u
       INNER JOIN roles r ON r.id = u.role_id
       WHERE u.company_id = ?
