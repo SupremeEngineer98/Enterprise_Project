@@ -10,6 +10,8 @@ import { useAuth } from "../context/AuthContext";
 const sidebarItems = [
   { to: "/super-user", icon: "dashboard", label: "Overview" },
   { to: "/super-user/assign", icon: "assignment_add", label: "Assign Quiz" },
+  { to: "/super-user/create-user", icon: "person_add", label: "Create User" },
+  { to: "/super-user/create-quiz", icon: "quiz", label: "Create Quiz" },
 ];
 
 export default function SuperUserDashboardPage() {
