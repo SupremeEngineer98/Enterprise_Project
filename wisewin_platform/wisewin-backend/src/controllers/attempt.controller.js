@@ -295,7 +295,7 @@ export function submitAnswer(req, res, next) {
 
     return res.status(200).json({
       isCorrect: Boolean(isCorrect),
-      message: isCorrect ? "Correct answer." : "Wrong answer.",
+      message: isCorrect ? "Correct! Well done." : "Incorrect. Keep going.",
       ...updatedAttempt,
     });
   } catch (error) {

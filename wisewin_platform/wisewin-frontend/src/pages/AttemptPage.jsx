@@ -8,7 +8,7 @@ export default function AttemptPage() {
 
   const [attempt, setAttempt] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,15 @@ export default function AttemptPage() {
         selectedOptionId: optionId,
       });
 
-      setFeedback(result.message || "");
+      setFeedback({
+        message: result.message,
+        isCorrect: result.isCorrect,
+      });
+
+      setTimeout(() => {
+        setFeedback(null);
+      }, 1500);
+
 
       const updated = await quizService.getAttempt(attemptId);
       setAttempt(updated);
@@ -103,15 +111,17 @@ export default function AttemptPage() {
               ))}
             </div>
 
-            {feedback ? (
-              <p
-                className={`mt-4 text-sm font-medium ${
-                  feedback.includes("Wrong") ? "text-red-600" : "text-green-600"
-                }`}
-              >
-                {feedback}
-              </p>
-            ) : null}
+            {feedback && (
+              <div
+                className={`p-4 rounded-xl font-medium ${
+                  feedback.isCorrect
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-700"
+                  }`}
+                >
+                  {feedback.message}
+                </div>
+              )}
           </div>
         ) : (
           <div className="space-y-6">
