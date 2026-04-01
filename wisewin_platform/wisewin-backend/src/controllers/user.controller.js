@@ -189,7 +189,18 @@ export function getCompanyUsers(req, res, next) {
         u.id,
         u.email,
         u.is_active AS isActive,
-        r.name AS role
+        r.name AS role,
+        (
+          SELECT COUNT(*)
+          FROM quiz_assignments qa
+          WHERE qa.user_id = u.id
+        ) AS assignedQuizzes,
+        (
+          SELECT COUNT(*)
+          FROM quiz_assignments qa
+          WHERE qa.user_id = u.id
+            AND qa.status = 'COMPLETED'
+        ) AS completedQuizzes
       FROM users u
       INNER JOIN roles r ON r.id = u.role_id
       WHERE u.company_id = ?
@@ -198,6 +209,34 @@ export function getCompanyUsers(req, res, next) {
 
     const users = stmt.all(companyId);
     res.status(200).json(users);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export function getCompanyAssignmentStats(req, res, next) {
+  try {
+    const companyId = Number(req.params.companyId);
+
+    if (req.user.role === "Super user" && req.user.companyId !== companyId) {
+      throw new ApiError(403, "Forbidden");
+    }
+
+    const stats = db.prepare(`
+      SELECT
+        COUNT(*) AS totalAssignments,
+        SUM(CASE WHEN qa.status IN ('ASSIGNED', 'IN_PROGRESS', 'OVERDUE') THEN 1 ELSE 0 END) AS pendingAssignments,
+        SUM(CASE WHEN qa.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedAssignments
+      FROM quiz_assignments qa
+      INNER JOIN users u ON u.id = qa.user_id
+      WHERE u.company_id = ?
+    `).get(companyId);
+
+    return res.status(200).json({
+      totalAssignments: stats.totalAssignments ?? 0,
+      pendingAssignments: stats.pendingAssignments ?? 0,
+      completedAssignments: stats.completedAssignments ?? 0,
+    });
   } catch (error) {
     next(error);
   }

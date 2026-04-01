@@ -10,33 +10,42 @@ import { useAuth } from "../context/AuthContext";
 const sidebarItems = [
   { to: "/super-user", icon: "dashboard", label: "Overview" },
   { to: "/super-user/assign", icon: "assignment_add", label: "Assign Quiz" },
+  { to: "/super-user/create-user", icon: "person_add", label: "Create User" },
+  { to: "/super-user/create-quiz", icon: "quiz", label: "Create Quiz" },
 ];
 
 export default function SuperUserDashboardPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
+  const [stats, setStats] = useState({
+    totalAssignments: 0,
+    pendingAssignments: 0,
+    completedAssignments: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [usersData, quizzesData] = await Promise.all([
+        const [usersData, quizzesData, statsData] = await Promise.all([
           userService.getCompanyUsers(user.companyId),
           quizService.getVisibleQuizzes(),
+          userService.getCompanyAssignmentStats(user.companyId),
         ]);
-
+        
         const mappedUsers = usersData
-          .filter((u) => u.role === "User")
-          .map((u) => ({
-            name: u.email.split("@")[0],
-            email: u.email,
-            assignedQuizzes: 0,
-            completedQuizzes: 0,
-          }));
+        .filter((u) => u.role === "User")
+        .map((u) => ({
+          name: u.email.split("@")[0],
+          email: u.email,
+          assignedQuizzes: u.assignedQuizzes ?? 0,
+          completedQuizzes: u.completedQuizzes ?? 0,
+        }));
 
         setUsers(mappedUsers);
         setQuizzes(quizzesData);
+        setStats(statsData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -68,8 +77,8 @@ export default function SuperUserDashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard title="Users" value={users.length} icon="group" />
-        <StatCard title="Pending Assignments" value={0} icon="schedule" />
-        <StatCard title="Completed Assignments" value={0} icon="check_circle" />
+        <StatCard title="Pending Assignments" value={stats.pendingAssignments} icon="schedule" />
+        <StatCard title="Completed Assignments" value={stats.completedAssignments} icon="check_circle" />
         <StatCard title="Visible Quizzes" value={companyQuizzes.length} icon="quiz" />
       </div>
 

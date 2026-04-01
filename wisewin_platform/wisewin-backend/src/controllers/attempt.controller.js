@@ -1,5 +1,6 @@
 import { db } from "../database/db.js";
 import { ApiError } from "../utils/apiError.js";
+import { shuffleArray } from "../utils/shuffle.js";
 
 export function startAttempt(req, res, next) {
   try {
@@ -174,24 +175,25 @@ export function getAttemptById(req, res, next) {
     const nextQuestion = nextQuestionStmt.get(attempt.quizId, attemptId);
 
     let fullNextQuestion = null;
-
+    
     if (nextQuestion) {
       const optionsStmt = db.prepare(`
         SELECT
-          id,
-          option_text AS optionText
+        id,
+        option_text AS optionText
         FROM question_options
         WHERE question_id = ?
         ORDER BY display_order ASC
-      `);
-
-      const options = optionsStmt.all(nextQuestion.id);
-
-      fullNextQuestion = {
-        ...nextQuestion,
-        options,
-      };
-    }
+        `);
+        
+        const options = optionsStmt.all(nextQuestion.id);
+        const shuffledOptions = shuffleArray(options);
+        
+        fullNextQuestion = {
+          ...nextQuestion,
+          options: shuffledOptions,
+        };
+      }
 
     return res.status(200).json({
       attemptId: attempt.attemptId,
@@ -295,7 +297,7 @@ export function submitAnswer(req, res, next) {
 
     return res.status(200).json({
       isCorrect: Boolean(isCorrect),
-      message: isCorrect ? "Correct answer." : "Wrong answer.",
+      message: isCorrect ? "Correct! Well done." : "Incorrect. Keep going.",
       ...updatedAttempt,
     });
   } catch (error) {

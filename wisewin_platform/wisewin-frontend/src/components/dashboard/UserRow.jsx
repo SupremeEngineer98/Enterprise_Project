@@ -1,6 +1,9 @@
 import ProgressBadge from "./ProgressBadge";
 
 export default function UserRow({ user }) {
+  const total = Number(user.assignedQuizzes ?? 0);
+  const completed = Number(user.completedQuizzes ?? 0);
+  
   return (
     <div className="flex justify-between items-center p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all">
       <div>
@@ -8,10 +11,11 @@ export default function UserRow({ user }) {
         <p className="text-sm text-[#454652]">{user.email}</p>
       </div>
 
-      <ProgressBadge completed={user.completedQuizzes} total={user.assignedQuizzes} />
+
+      <ProgressBadge completed={completed} total={total} />
 
       <div className="text-sm text-[#454652]">
-        {user.completedQuizzes}/{user.assignedQuizzes}
+        {user.assignedQuizzes ? `${completed}/${total}` : "No assignments"}
       </div>
     </div>
   );

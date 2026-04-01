@@ -1,6 +1,9 @@
 export default function ProgressBadge({ completed, total }) {
-  const safeTotal = total || 1;
-  const percentage = Math.round((completed / safeTotal) * 100);
+  if (!total) {
+    return <span className="text-sm text-[#454652]">No assignments</span>;
+  }
+
+  const percentage = Math.round((completed / total) * 100);
 
   return (
     <div className="flex items-center gap-3">
