@@ -213,6 +213,7 @@ export function submitAnswer(req, res, next) {
   try {
     const attemptId = Number(req.params.attemptId);
     const { questionId, selectedOptionId } = req.body;
+    
 
     if (!questionId || !selectedOptionId) {
       throw new ApiError(400, "questionId and selectedOptionId are required");
@@ -307,7 +308,10 @@ export function submitAnswer(req, res, next) {
 
 export function submitAttempt(req, res, next) {
   try {
+    
     const attemptId = Number(req.params.attemptId);
+
+    const timeTaken = Math.max(0, Number(req.body?.timeTaken || 0)); //adding the time parameter to send it to the DB!
 
     const attemptStmt = db.prepare(`
       SELECT
@@ -365,9 +369,10 @@ export function submitAttempt(req, res, next) {
         status = 'COMPLETED',
         passed = ?,
         completed_at = CURRENT_TIMESTAMP,
+         time_taken_seconds = ?,
         last_activity_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(passed, attemptId);
+    `).run(passed, timeTaken ?? 0, attemptId);
 
     if (passed) {
       db.prepare(`
@@ -400,9 +405,11 @@ export function submitAttempt(req, res, next) {
         ? "Quiz passed successfully."
         : "Quiz failed. Please try again.",
     });
+    
   } catch (error) {
     next(error);
   }
+ 
 }
 
 export function getAssignmentAttempts(req, res, next) {
