@@ -401,6 +401,7 @@ export function submitAttempt(req, res, next) {
       maxWrongAnswers,
       passed: Boolean(passed),
       completedAt: new Date().toISOString(),
+      timeTaken: timeTaken,
       message: passed
         ? "Quiz passed successfully."
         : "Quiz failed. Please try again.",

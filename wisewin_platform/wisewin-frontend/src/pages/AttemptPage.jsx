@@ -115,8 +115,10 @@ export default function AttemptPage() {
 
         {/* Timer */}
         <p className="mb-4 text-[#454652]">
-          Time: {Math.floor(elapsedTime / 60)}:
+          Time: <span className="text-[#000666] font-semibold">
+          {Math.floor(elapsedTime / 60)}:
           {String(elapsedTime % 60).padStart(2, "0")}
+          </span>
         </p>
 
         <div className="space-y-2 mb-8 text-[#454652]">
