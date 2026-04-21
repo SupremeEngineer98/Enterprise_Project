@@ -93,7 +93,7 @@ export default function AttemptPage() {
         {!isFinished ? (
           <div>
             <h2 className="text-xl font-semibold text-[#000666] mb-4">
-              {attempt.nextQuestion.displayOrder}. {attempt.nextQuestion.questionText}
+              {attempt.answeredCount + 1}. {attempt.nextQuestion.questionText}
             </h2>
             <div className="space-y-3">
               {attempt.nextQuestion.options.map((option) => (
