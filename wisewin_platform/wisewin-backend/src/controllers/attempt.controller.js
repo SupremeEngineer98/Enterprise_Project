@@ -169,7 +169,7 @@ export function getAttemptById(req, res, next) {
           FROM quiz_attempt_answers
           WHERE attempt_id = ?
         )
-      ORDER BY q.display_order ASC
+      ORDER BY RANDOM()
       LIMIT 1
     `);
 
