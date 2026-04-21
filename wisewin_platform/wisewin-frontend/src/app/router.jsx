@@ -13,9 +13,11 @@ import AdminCreateQuizPage from "../pages/AdminCreateQuizPage";
 import ManageQuizQuestionsPage from "../pages/ManageQuizQuestionsPage";
 import SuperUserCreateUserPage from "../pages/SuperUserCreateUserPage";
 import SuperUserCreateQuizPage from "../pages/SuperUserCreateQuizPage";
+import AttemptReviewPage from "../pages/AttemptReviewPage";
 import ChangePasswordPage from "../pages/ChangePasswordPage";
 import { useAuth } from "../context/AuthContext";
 import { ROLES } from "../utils/constants";
+
 
 function ProtectedRoute({ allowedRoles }) {
   const { isAuthenticated, user, bootstrapping } = useAuth();
@@ -96,6 +98,7 @@ export const router = createBrowserRouter([
       { path: "/attempts/:attemptId/result", element: <AttemptResultPage /> },
       { path: "/assignments/:assignmentId/history", element: <AssignmentHistoryPage /> },
       { path: "/user/change-password", element: <ChangePasswordPage /> },
+      { path: "/attempts/:attemptId/review", element: <AttemptReviewPage /> },
     ],
   },
 ]);

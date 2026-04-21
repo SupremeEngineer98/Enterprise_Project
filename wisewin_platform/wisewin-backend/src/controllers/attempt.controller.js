@@ -392,6 +392,18 @@ export function submitAttempt(req, res, next) {
       `).run(attempt.assignmentId);
     }
 
+    const answersStmt = db.prepare(`
+  SELECT
+    q.question_text AS questionText,
+    qaa.is_correct AS isCorrect,
+    qo.option_text AS selectedOption
+  FROM quiz_attempt_answers qaa
+  INNER JOIN questions q ON q.id = qaa.question_id
+  INNER JOIN question_options qo ON qo.id = qaa.selected_option_id
+  WHERE qaa.attempt_id = ?
+`);
+const answers = answersStmt.all(attemptId);
+
     return res.status(200).json({
       status: "COMPLETED",
       attemptNumber: attempt.attemptNumber,
@@ -402,6 +414,7 @@ export function submitAttempt(req, res, next) {
       passed: Boolean(passed),
       completedAt: new Date().toISOString(),
       timeTaken: timeTaken,
+      answers,
       message: passed
         ? "Quiz passed successfully."
         : "Quiz failed. Please try again.",

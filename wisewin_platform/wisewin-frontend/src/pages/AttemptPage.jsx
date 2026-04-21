@@ -79,9 +79,9 @@ export default function AttemptPage() {
         timeTaken: elapsedTime,
       });
 
-      navigate(`/attempts/${attemptId}/result`, {
-        state: { result },
-      });
+      navigate(`/attempts/${attemptId}/review`, {
+  state: { result },
+});
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Could not submit attempt");
@@ -150,17 +150,7 @@ export default function AttemptPage() {
               ))}
             </div>
 
-            {feedback && (
-              <div
-                className={`p-4 rounded-xl font-medium ${
-                  feedback.isCorrect
-                    ? "bg-green-50 text-green-700"
-                    : "bg-red-50 text-red-700"
-                }`}
-              >
-                {feedback.message}
-              </div>
-            )}
+          
           </div>
         ) : (
           <div className="space-y-6">
