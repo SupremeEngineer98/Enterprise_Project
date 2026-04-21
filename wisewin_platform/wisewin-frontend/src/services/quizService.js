@@ -31,10 +31,10 @@ export const quizService = {
     return data;
   },
 
-  async submitAttempt(attemptId) {
-    const { data } = await api.post(`/attempts/${attemptId}/submit`);
-    return data;
-  },
+async submitAttempt(attemptId, payload) {
+  const { data } = await api.post(`/attempts/${attemptId}/submit`, payload);
+  return data;
+},
 
   async getAssignmentAttemptHistory(assignmentId) {
     const { data } = await api.get(`/attempts/assignments/${assignmentId}/history`);

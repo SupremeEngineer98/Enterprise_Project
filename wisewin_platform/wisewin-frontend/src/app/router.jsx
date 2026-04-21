@@ -14,6 +14,7 @@ import ManageQuizQuestionsPage from "../pages/ManageQuizQuestionsPage";
 import SuperUserCreateUserPage from "../pages/SuperUserCreateUserPage";
 import SuperUserCreateQuizPage from "../pages/SuperUserCreateQuizPage";
 import ChangePasswordPage from "../pages/ChangePasswordPage";
+import AttemptReviewPage from "../pages/AttemptReviewPage";
 import { useAuth } from "../context/AuthContext";
 import { ROLES } from "../utils/constants";
 
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
       { path: "/attempts/:attemptId/result", element: <AttemptResultPage /> },
       { path: "/assignments/:assignmentId/history", element: <AssignmentHistoryPage /> },
       { path: "/user/change-password", element: <ChangePasswordPage /> },
+      { path: "/attempts/:attemptId/review", element: <AttemptReviewPage /> }
     ],
   },
 ]);

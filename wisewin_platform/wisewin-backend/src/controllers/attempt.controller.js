@@ -113,6 +113,7 @@ export function startAttempt(req, res, next) {
 export function getAttemptById(req, res, next) {
   try {
     const attemptId = Number(req.params.attemptId);
+   
 
     const attemptStmt = db.prepare(`
       SELECT
@@ -308,6 +309,7 @@ export function submitAnswer(req, res, next) {
 export function submitAttempt(req, res, next) {
   try {
     const attemptId = Number(req.params.attemptId);
+    const timeTaken = Math.max(0, Number(req.body?.timeTaken || 0));
 
     const attemptStmt = db.prepare(`
       SELECT
@@ -326,17 +328,9 @@ export function submitAttempt(req, res, next) {
 
     const attempt = attemptStmt.get(attemptId);
 
-    if (!attempt) {
-      throw new ApiError(404, "Attempt not found");
-    }
-
-    if (attempt.userId !== req.user.sub) {
-      throw new ApiError(403, "Forbidden");
-    }
-
-    if (attempt.status !== "IN_PROGRESS") {
-      throw new ApiError(400, "Attempt is not active");
-    }
+    if (!attempt) throw new ApiError(404, "Attempt not found");
+    if (attempt.userId !== req.user.sub) throw new ApiError(403, "Forbidden");
+    if (attempt.status !== "IN_PROGRESS") throw new ApiError(400, "Attempt is not active");
 
     const quizRulesStmt = db.prepare(`
       SELECT
@@ -348,7 +342,6 @@ export function submitAttempt(req, res, next) {
     `);
 
     const quizRules = quizRulesStmt.get(attempt.quizId);
-
     const totalQuestions = quizRules.totalQuestions;
     const maxWrongAnswers = quizRules.maxWrongAnswers;
 
@@ -364,28 +357,36 @@ export function submitAttempt(req, res, next) {
       SET
         status = 'COMPLETED',
         passed = ?,
+        time_taken_seconds = ?,
         completed_at = CURRENT_TIMESTAMP,
         last_activity_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(passed, attemptId);
+    `).run(passed, timeTaken, attemptId);
 
     if (passed) {
       db.prepare(`
         UPDATE quiz_assignments
-        SET
-          status = 'COMPLETED',
-          updated_at = CURRENT_TIMESTAMP
+        SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(attempt.assignmentId);
     } else {
       db.prepare(`
         UPDATE quiz_assignments
-        SET
-          status = 'ASSIGNED',
-          updated_at = CURRENT_TIMESTAMP
+        SET status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(attempt.assignmentId);
     }
+
+    const answers = db.prepare(`
+      SELECT
+        q.question_text AS questionText,
+        qaa.is_correct AS isCorrect,
+        qo.option_text AS selectedOption
+      FROM quiz_attempt_answers qaa
+      INNER JOIN questions q ON q.id = qaa.question_id
+      INNER JOIN question_options qo ON qo.id = qaa.selected_option_id
+      WHERE qaa.attempt_id = ?
+    `).all(attemptId);
 
     return res.status(200).json({
       status: "COMPLETED",
@@ -396,6 +397,8 @@ export function submitAttempt(req, res, next) {
       maxWrongAnswers,
       passed: Boolean(passed),
       completedAt: new Date().toISOString(),
+      timeTaken,
+      answers,
       message: passed
         ? "Quiz passed successfully."
         : "Quiz failed. Please try again.",

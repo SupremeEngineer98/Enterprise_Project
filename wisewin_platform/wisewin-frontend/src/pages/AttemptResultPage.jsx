@@ -7,6 +7,12 @@ export default function AttemptResultPage() {
 
   const result = location.state?.result;
 
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${String(sec).padStart(2, "0")}`;
+  };
+
   if (!result) {
     return (
       <div className="min-h-screen bg-[#fcf8ff] flex items-center justify-center p-6">
@@ -17,7 +23,6 @@ export default function AttemptResultPage() {
           <p className="text-[#454652] mb-8">
             This result page was opened without submission data.
           </p>
-
           <button
             type="button"
             onClick={() => navigate("/user")}
@@ -37,11 +42,7 @@ export default function AttemptResultPage() {
   return (
     <div className="min-h-screen bg-[#fcf8ff] p-8">
       <div className="max-w-2xl mx-auto">
-        <div
-          className={`rounded-3xl p-10 shadow-[0_20px_60px_rgba(26,35,126,0.08)] ${
-            result.passed ? "bg-white" : "bg-white"
-          }`}
-        >
+        <div className="rounded-3xl p-10 shadow-[0_20px_60px_rgba(26,35,126,0.08)] bg-white">
           <div className="text-center mb-10">
             <div
               className={`mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${
@@ -59,9 +60,7 @@ export default function AttemptResultPage() {
               {result.passed ? "Quiz Passed" : "Quiz Failed"}
             </h1>
 
-            <p className="text-[#454652] text-lg">
-              {result.message}
-            </p>
+            <p className="text-[#454652] text-lg">{result.message}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
@@ -97,7 +96,7 @@ export default function AttemptResultPage() {
               </span>
             </div>
 
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-[#454652]">
                 Your wrong answers
               </span>
@@ -107,6 +106,13 @@ export default function AttemptResultPage() {
                 }`}
               >
                 {result.wrongAnswers}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-[#454652]">Time</span>
+              <span className="font-semibold text-[#000666]">
+                {formatTime(result.timeTaken)}
               </span>
             </div>
           </div>
