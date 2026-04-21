@@ -34,12 +34,6 @@ export default function AttemptResultPage() {
     (result.finalScore / result.totalQuestions) * 100
   );
 
-  const formatTime = (seconds) => {
-  const min = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return `${min}:${String(sec).padStart(2, "0")}`;
-};
-
   return (
     <div className="min-h-screen bg-[#fcf8ff] p-8">
       <div className="max-w-2xl mx-auto">
@@ -107,8 +101,6 @@ export default function AttemptResultPage() {
               <span className="text-sm font-medium text-[#454652]">
                 Your wrong answers
               </span>
-
-   
               <span
                 className={`font-semibold ${
                   result.passed ? "text-green-700" : "text-red-700"
@@ -117,10 +109,6 @@ export default function AttemptResultPage() {
                 {result.wrongAnswers}
               </span>
             </div>
-      <div className="flex justify-between items-center mt-3">
-  <span className="text-sm font-medium text-[#454652]">Time</span>
-  <span className="font-semibold text-[#000666]">{formatTime(result.timeTaken)}</span>
-</div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
