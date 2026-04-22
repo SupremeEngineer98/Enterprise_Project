@@ -439,25 +439,55 @@ export function getAssignmentAttempts(req, res, next) {
 
     const { totalQuestions } = totalQuestionsStmt.get(assignment.quizId);
 
-    const attemptsStmt = db.prepare(`
+    // 🔥 1 query για όλα (attempts + answers)
+    const rows = db.prepare(`
       SELECT
-        id AS attemptId,
-        attempt_number AS attemptNumber,
-        status,
-        current_score AS score,
-        passed,
-        started_at AS startedAt,
-        completed_at AS completedAt
-      FROM quiz_attempts
-      WHERE assignment_id = ?
-      ORDER BY attempt_number ASC
-    `);
+        qa.id AS attemptId,
+        qa.attempt_number AS attemptNumber,
+        qa.status,
+        qa.current_score AS score,
+        qa.passed,
+        qa.started_at AS startedAt,
+        qa.completed_at AS completedAt,
+        q.question_text AS questionText,
+        qaa.is_correct AS isCorrect,
+        qo.option_text AS selectedOption
+      FROM quiz_attempts qa
+      LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id
+      LEFT JOIN questions q ON q.id = qaa.question_id
+      LEFT JOIN question_options qo ON qo.id = qaa.selected_option_id
+      WHERE qa.assignment_id = ?
+      ORDER BY qa.attempt_number ASC
+    `).all(assignmentId);
 
-    const attempts = attemptsStmt.all(assignmentId).map((attempt) => ({
-      ...attempt,
-      totalQuestions,
-      passed: attempt.passed === null ? null : Boolean(attempt.passed),
-    }));
+    // 🔥 grouping
+    const grouped = {};
+
+    for (const row of rows) {
+      if (!grouped[row.attemptId]) {
+        grouped[row.attemptId] = {
+          attemptId: row.attemptId,
+          attemptNumber: row.attemptNumber,
+          status: row.status,
+          score: row.score,
+          passed: row.passed === null ? null : Boolean(row.passed),
+          startedAt: row.startedAt,
+          completedAt: row.completedAt,
+          totalQuestions,
+          answers: [],
+        };
+      }
+
+      if (row.questionText) {
+        grouped[row.attemptId].answers.push({
+          questionText: row.questionText,
+          isCorrect: Boolean(row.isCorrect),
+          selectedOption: row.selectedOption,
+        });
+      }
+    }
+
+    const attempts = Object.values(grouped);
 
     return res.status(200).json(attempts);
   } catch (error) {
