@@ -439,7 +439,7 @@ export function getAssignmentAttempts(req, res, next) {
 
     const { totalQuestions } = totalQuestionsStmt.get(assignment.quizId);
 
-    // 🔥 1 query για όλα (attempts + answers)
+   
     const rows = db.prepare(`
       SELECT
         qa.id AS attemptId,
@@ -451,7 +451,8 @@ export function getAssignmentAttempts(req, res, next) {
         qa.completed_at AS completedAt,
         q.question_text AS questionText,
         qaa.is_correct AS isCorrect,
-        qo.option_text AS selectedOption
+        qo.option_text AS selectedOption,
+        qa.time_taken_seconds AS timeTaken
       FROM quiz_attempts qa
       LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id
       LEFT JOIN questions q ON q.id = qaa.question_id
@@ -460,7 +461,7 @@ export function getAssignmentAttempts(req, res, next) {
       ORDER BY qa.attempt_number ASC
     `).all(assignmentId);
 
-    // 🔥 grouping
+   
     const grouped = {};
 
     for (const row of rows) {
@@ -474,6 +475,7 @@ export function getAssignmentAttempts(req, res, next) {
           startedAt: row.startedAt,
           completedAt: row.completedAt,
           totalQuestions,
+          timeTaken: grouped[row.attemptId]?.timeTaken ?? row.timeTaken,
           answers: [],
         };
       }
