@@ -13,6 +13,14 @@ export const userService = {
     const { data } = await api.post("/users", payload);
     return data;
   },
+  async updateUser(userId, payload) {
+    const { data } = await api.put(`/users/${userId}`, payload);
+    return data;
+  },
+  async deleteUser(userId) {
+    const { data } = await api.delete(`/users/${userId}`);
+    return data;
+  },
   async changePassword(userId, payload) {
     const { data } = await api.put(`/users/${userId}/password`, payload);
     return data;
