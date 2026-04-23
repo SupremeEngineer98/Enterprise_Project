@@ -18,6 +18,11 @@ import AttemptReviewPage from "../pages/AttemptReviewPage";
 import { useAuth } from "../context/AuthContext";
 import { ROLES } from "../utils/constants";
 import ScoreboardPage from "../pages/ScoreboardPage";
+import AdminCompaniesPage from "../pages/AdminCompaniesPage";
+import AdminUsersPage from "../pages/AdminUsersPage";
+import AdminSuperUsersPage from "../pages/AdminSuperUsersPage";
+import AdminQuizzesPage from "../pages/AdminQuizzesPage";
+
 
 function ProtectedRoute({ allowedRoles }) {
   const { isAuthenticated, user, bootstrapping } = useAuth();
@@ -77,6 +82,10 @@ export const router = createBrowserRouter([
       { path: "/admin/create-quiz", element: <AdminCreateQuizPage /> },
       { path: "/admin/quizzes/:quizId/questions", element: <ManageQuizQuestionsPage /> },
       { path: "/admin/change-password", element: <ChangePasswordPage /> },
+      { path: "/admin/companies", element: <AdminCompaniesPage /> },
+      { path: "/admin/users", element: <AdminUsersPage /> },
+      { path: "/admin/super-users", element: <AdminSuperUsersPage /> },
+      { path: "/admin/quizzes", element: <AdminQuizzesPage /> },
     ],
   },
   {
