@@ -241,3 +241,51 @@ export function getCompanyAssignmentStats(req, res, next) {
     next(error);
   }
 }
+
+export function getUserComparison(req, res, next) {
+  try {
+    const companyId = Number(req.params.companyId);
+
+    if (req.user.role === "Super user" && req.user.companyId !== companyId) {
+      throw new ApiError(403, "Forbidden");
+    }
+
+    const rows = db.prepare(`
+      SELECT
+        u.id AS userId,
+        u.email,
+        COUNT(DISTINCT qa.id) AS totalAssigned,
+        COUNT(DISTINCT CASE WHEN qa.status = 'COMPLETED' THEN qa.id END) AS totalCompleted,
+        COUNT(DISTINCT CASE WHEN qa.status IN ('ASSIGNED','IN_PROGRESS') THEN qa.id END) AS totalPending,
+        COALESCE(AVG(
+          CASE WHEN at2.passed = 1 AND at2.status = 'COMPLETED'
+               THEN CAST(at2.current_score AS REAL) / NULLIF(qcount.cnt, 0) * 100
+          END
+        ), 0) AS avgScore
+      FROM users u
+      LEFT JOIN quiz_assignments qa ON qa.user_id = u.id
+      LEFT JOIN quiz_attempts at2 ON at2.assignment_id = qa.id AND at2.status = 'COMPLETED'
+      LEFT JOIN (
+        SELECT quiz_id, COUNT(*) AS cnt FROM questions GROUP BY quiz_id
+      ) qcount ON qcount.quiz_id = qa.quiz_id
+      WHERE u.company_id = ?
+        AND u.role_id = (SELECT id FROM roles WHERE name = 'User')
+      GROUP BY u.id, u.email
+      ORDER BY totalCompleted DESC, avgScore DESC
+    `).all(companyId);
+
+    const result = rows.map((r) => ({
+      userId: r.userId,
+      email: r.email,
+      name: r.email.split("@")[0],
+      totalAssigned: r.totalAssigned,
+      totalCompleted: r.totalCompleted,
+      totalPending: r.totalPending,
+      avgScore: Math.round(r.avgScore),
+    }));
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}

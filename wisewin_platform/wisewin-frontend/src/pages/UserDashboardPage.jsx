@@ -6,6 +6,7 @@ import { quizService } from "../services/quizService";
 
 const sidebarItems = [
   { to: "/user", icon: "dashboard", label: "Dashboard" },
+  { to: "/user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
 ];
 
 export default function UserDashboardPage() {
@@ -62,6 +63,14 @@ export default function UserDashboardPage() {
           <p className="text-lg opacity-90 max-w-md">
             Track your assigned training, complete quizzes, and review your results.
           </p>
+          <button
+            type="button"
+            onClick={() => navigate("/user/scoreboard")}
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#1A237E] font-semibold hover:bg-[#f3f1ff] transition-all"
+          >
+            <span className="material-symbols-outlined text-base">leaderboard</span>
+            View Scoreboard
+          </button>
         </div>
       </section>
 
@@ -85,19 +94,29 @@ export default function UserDashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {activeAssignments.map((assignment) => (
-              <QuizCard
-                key={assignment.assignmentId}
-                quiz={{
-                  assignmentId: assignment.assignmentId,
-                  attemptId: assignment.attemptId,
-                  title: assignment.quizTitle,
-                  description: `${assignment.description || "Assigned quiz"} • Attempts used: ${assignment.attemptsUsed}`,
-                  dueDate: assignment.dueDate || "No due date",
-                  duration: assignment.totalQuestions || 0,
-                  status: assignment.status,
-                }}
-                onAction={handleQuizAction}
-              />
+              <div key={assignment.assignmentId} className="flex flex-col gap-2">
+                <QuizCard
+                  quiz={{
+                    assignmentId: assignment.assignmentId,
+                    attemptId: assignment.attemptId,
+                    title: assignment.quizTitle,
+                    description: `${assignment.description || "Assigned quiz"} • Attempts used: ${assignment.attemptsUsed}`,
+                    dueDate: assignment.dueDate || "No due date",
+                    duration: assignment.totalQuestions || 0,
+                    status: assignment.status,
+                  }}
+                  onAction={handleQuizAction}
+                />
+                {assignment.attemptsUsed > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/assignments/${assignment.assignmentId}/history`)}
+                    className="w-full px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff] text-sm"
+                  >
+                    View Attempt History ({assignment.attemptsUsed})
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}

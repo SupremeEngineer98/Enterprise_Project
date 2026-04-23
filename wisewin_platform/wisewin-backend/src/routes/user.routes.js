@@ -7,6 +7,7 @@ import {
   getCompanyUsers,
   changePassword,
   getCompanyAssignmentStats,
+  getUserComparison,
 } from "../controllers/user.controller.js";
 
 
@@ -137,6 +138,13 @@ router.get(
   authMiddleware,
   requireRole("Administrator", "Super user"),
   getCompanyAssignmentStats
+);
+
+router.get(
+  "/company/:companyId/comparison",
+  authMiddleware,
+  requireRole("Administrator", "Super user", "User"),
+  getUserComparison
 );
 
 export default router;

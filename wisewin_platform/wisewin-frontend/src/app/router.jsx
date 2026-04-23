@@ -17,6 +17,7 @@ import ChangePasswordPage from "../pages/ChangePasswordPage";
 import AttemptReviewPage from "../pages/AttemptReviewPage";
 import { useAuth } from "../context/AuthContext";
 import { ROLES } from "../utils/constants";
+import ScoreboardPage from "../pages/ScoreboardPage";
 
 function ProtectedRoute({ allowedRoles }) {
   const { isAuthenticated, user, bootstrapping } = useAuth();
@@ -97,7 +98,8 @@ export const router = createBrowserRouter([
       { path: "/attempts/:attemptId/result", element: <AttemptResultPage /> },
       { path: "/assignments/:assignmentId/history", element: <AssignmentHistoryPage /> },
       { path: "/user/change-password", element: <ChangePasswordPage /> },
-      { path: "/attempts/:attemptId/review", element: <AttemptReviewPage /> }
+      { path: "/attempts/:attemptId/review", element: <AttemptReviewPage /> },
+      { path: "/user/scoreboard", element: <ScoreboardPage /> }
     ],
   },
 ]);
