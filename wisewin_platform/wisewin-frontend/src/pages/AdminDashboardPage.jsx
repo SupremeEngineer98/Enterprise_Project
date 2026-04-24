@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
         <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/companies")}>
         <StatCard title="Companies" value={companies.length} icon="business" />
         </div>
-        <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/users")}>
+        <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/super-users")}>
         <StatCard title="Super Users" value={superUsers.length} icon="manage_accounts" />
         </div>
         <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/users")}>
