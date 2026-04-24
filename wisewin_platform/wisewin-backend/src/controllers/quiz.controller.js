@@ -7,31 +7,17 @@ export function getVisibleQuizzes(req, res, next) {
 
     if (req.user.role === "Administrator") {
       quizzes = db.prepare(`
-        SELECT
-          q.id,
-          q.title,
-          q.description,
-          q.source_type AS sourceType,
-          q.company_id AS companyId,
-          q.created_by AS createdBy,
-          q.max_wrong_answers AS maxWrongAnswers,
-          q.is_active AS isActive
-        FROM quizzes q
-        ORDER BY q.id DESC
+        SELECT q.id, q.title, q.description, q.source_type AS sourceType,
+               q.company_id AS companyId, q.created_by AS createdBy,
+               q.max_wrong_answers AS maxWrongAnswers, q.is_active AS isActive
+        FROM quizzes q ORDER BY q.id DESC
       `).all();
     } else {
       quizzes = db.prepare(`
-        SELECT
-          q.id,
-          q.title,
-          q.description,
-          q.source_type AS sourceType,
-          q.company_id AS companyId,
-          q.created_by AS createdBy,
-          q.max_wrong_answers AS maxWrongAnswers,
-          q.is_active AS isActive
-        FROM quizzes q
-        WHERE q.company_id IS NULL OR q.company_id = ?
+        SELECT q.id, q.title, q.description, q.source_type AS sourceType,
+               q.company_id AS companyId, q.created_by AS createdBy,
+               q.max_wrong_answers AS maxWrongAnswers, q.is_active AS isActive
+        FROM quizzes q WHERE q.company_id IS NULL OR q.company_id = ?
         ORDER BY q.id DESC
       `).all(req.user.companyId);
     }
@@ -46,69 +32,93 @@ export function createQuiz(req, res, next) {
   try {
     const { title, description, sourceType, maxWrongAnswers } = req.body;
 
-    if (!title || !sourceType) {
-      throw new ApiError(400, "title and sourceType are required");
-    }
-
-    if (!["PLATFORM", "COMPANY"].includes(sourceType)) {
-      throw new ApiError(400, "Invalid sourceType");
-    }
-
-    if (req.user.role === "Super user" && sourceType !== "COMPANY") {
+    if (!title || !sourceType) throw new ApiError(400, "title and sourceType are required");
+    if (!["PLATFORM", "COMPANY"].includes(sourceType)) throw new ApiError(400, "Invalid sourceType");
+    if (req.user.role === "Super user" && sourceType !== "COMPANY")
       throw new ApiError(403, "Super user can only create company quizzes");
-    }
 
-    const companyId =
-      sourceType === "COMPANY"
-        ? req.user.role === "Super user"
-          ? req.user.companyId
-          : req.body.companyId ?? null
-        : null;
+    const companyId = sourceType === "COMPANY"
+      ? req.user.role === "Super user" ? req.user.companyId : req.body.companyId ?? null
+      : null;
 
-    if (sourceType === "COMPANY" && !companyId) {
+    if (sourceType === "COMPANY" && !companyId)
       throw new ApiError(400, "companyId is required for company quiz");
-    }
 
     const result = db.prepare(`
-      INSERT INTO quizzes (
-        company_id,
-        created_by,
-        title,
-        description,
-        source_type,
-        max_wrong_answers,
-        is_active,
-        created_at,
-        updated_at
-      )
+      INSERT INTO quizzes (company_id, created_by, title, description, source_type, max_wrong_answers, is_active, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).run(
-      companyId,
-      req.user.sub,
-      title,
-      description || null,
-      sourceType,
-      Number(maxWrongAnswers ?? 2)
-    );
+    `).run(companyId, req.user.sub, title, description || null, sourceType, Number(maxWrongAnswers ?? 2));
 
     const quiz = db.prepare(`
-      SELECT
-        id,
-        company_id AS companyId,
-        created_by AS createdBy,
-        title,
-        description,
-        source_type AS sourceType,
-        max_wrong_answers AS maxWrongAnswers,
-        is_active AS isActive
-      FROM quizzes
-      WHERE id = ?
+      SELECT id, company_id AS companyId, created_by AS createdBy, title, description,
+             source_type AS sourceType, max_wrong_answers AS maxWrongAnswers, is_active AS isActive
+      FROM quizzes WHERE id = ?
     `).get(result.lastInsertRowid);
 
-    return res.status(201).json({
-      message: "Quiz created successfully",
-      quiz,
-    });
+    return res.status(201).json({ message: "Quiz created successfully", quiz });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// PUT /api/quizzes/:quizId
+export function updateQuiz(req, res, next) {
+  try {
+    const quizId = Number(req.params.quizId);
+    const { title, description, maxWrongAnswers, isActive } = req.body;
+
+    const quiz = db.prepare(`SELECT id, company_id AS companyId, source_type AS sourceType FROM quizzes WHERE id = ?`).get(quizId);
+    if (!quiz) throw new ApiError(404, "Quiz not found");
+
+    if (req.user.role === "Super user") {
+      if (quiz.sourceType !== "COMPANY" || quiz.companyId !== req.user.companyId)
+        throw new ApiError(403, "You cannot edit this quiz");
+    }
+
+    db.prepare(`
+      UPDATE quizzes SET
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        max_wrong_answers = COALESCE(?, max_wrong_answers),
+        is_active = CASE WHEN ? IS NOT NULL THEN ? ELSE is_active END,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      title ?? null,
+      description ?? null,
+      maxWrongAnswers ?? null,
+      isActive !== undefined ? 1 : null,
+      isActive ? 1 : 0,
+      quizId
+    );
+
+    const updated = db.prepare(`
+      SELECT id, company_id AS companyId, title, description,
+             source_type AS sourceType, max_wrong_answers AS maxWrongAnswers, is_active AS isActive
+      FROM quizzes WHERE id = ?
+    `).get(quizId);
+
+    return res.status(200).json(updated);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// DELETE /api/quizzes/:quizId
+export function deleteQuiz(req, res, next) {
+  try {
+    const quizId = Number(req.params.quizId);
+
+    const quiz = db.prepare(`SELECT id, company_id AS companyId, source_type AS sourceType FROM quizzes WHERE id = ?`).get(quizId);
+    if (!quiz) throw new ApiError(404, "Quiz not found");
+
+    if (req.user.role === "Super user") {
+      if (quiz.sourceType !== "COMPANY" || quiz.companyId !== req.user.companyId)
+        throw new ApiError(403, "You cannot delete this quiz");
+    }
+
+    db.prepare(`DELETE FROM quizzes WHERE id = ?`).run(quizId);
+    return res.status(200).json({ message: "Quiz deleted successfully" });
   } catch (error) {
     next(error);
   }
