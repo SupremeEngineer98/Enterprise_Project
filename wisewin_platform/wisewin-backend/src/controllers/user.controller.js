@@ -93,28 +93,45 @@ export function getAllUsers(req, res, next) {
   }
 }
 
-// PUT /api/users/:userId
 export function updateUser(req, res, next) {
   try {
     const userId = Number(req.params.userId);
     const { email, role, companyId, isActive } = req.body;
 
-    const existing = db.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
+    const existing = db.prepare(`
+      SELECT u.id, u.company_id AS companyId, r.name AS role
+      FROM users u INNER JOIN roles r ON r.id = u.role_id
+      WHERE u.id = ?
+    `).get(userId);
+
     if (!existing) throw new ApiError(404, "User not found");
 
-    // If email is changing, check for duplicates
+    // Super user can only edit users in their own company
+    if (req.user.role === "Super user") {
+      if (existing.companyId !== req.user.companyId) {
+        throw new ApiError(403, "You can only manage users in your company");
+      }
+      if (email || role || companyId) {
+        throw new ApiError(403, "Super user can only change active status");
+      }
+    }
+
     if (email) {
       const duplicate = db.prepare(`SELECT id FROM users WHERE email = ? AND id != ?`).get(email, userId);
       if (duplicate) throw new ApiError(409, "Email already in use");
     }
 
-    // Resolve role_id if role is changing
     let roleId = null;
     if (role) {
       const roleRow = db.prepare(`SELECT id FROM roles WHERE name = ?`).get(role);
       if (!roleRow) throw new ApiError(400, "Invalid role");
       roleId = roleRow.id;
     }
+
+    // Fix: convert isActive to SQLite-compatible 1/0/null
+    let isActiveDb = null;
+    if (isActive === true || isActive === 1 || isActive === "1") isActiveDb = 1;
+    else if (isActive === false || isActive === 0 || isActive === "0") isActiveDb = 0;
 
     db.prepare(`
       UPDATE users SET
@@ -128,8 +145,8 @@ export function updateUser(req, res, next) {
       email ?? null,
       roleId,
       companyId ?? null,
-      isActive !== undefined ? 1 : null,
-      isActive ? 1 : 0,
+      isActiveDb,
+      isActiveDb,
       userId
     );
 
@@ -148,7 +165,6 @@ export function updateUser(req, res, next) {
   }
 }
 
-// DELETE /api/users/:userId
 export function deleteUser(req, res, next) {
   try {
     const userId = Number(req.params.userId);
@@ -156,7 +172,6 @@ export function deleteUser(req, res, next) {
     const existing = db.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
     if (!existing) throw new ApiError(404, "User not found");
 
-    // Prevent self-deletion
     if (req.user.sub === userId) throw new ApiError(400, "You cannot delete yourself");
 
     db.prepare(`DELETE FROM users WHERE id = ?`).run(userId);

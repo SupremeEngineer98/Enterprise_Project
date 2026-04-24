@@ -55,6 +55,9 @@ export default function SuperUserDashboardPage() {
   const [editQuizForm, setEditQuizForm] = useState({});
   const [editQuizLoading, setEditQuizLoading] = useState(false);
   const [editQuizError, setEditQuizError] = useState("");
+  // NEW: questions shown inside the Edit Quiz modal
+  const [editQuizQuestions, setEditQuizQuestions] = useState([]);
+  const [loadingEditQuestions, setLoadingEditQuestions] = useState(false);
 
   const [editQuestion, setEditQuestion] = useState(null);
   const [editQuestionForm, setEditQuestionForm] = useState({});
@@ -112,16 +115,15 @@ export default function SuperUserDashboardPage() {
 
   const openEdit = (u) => {
     setEditUser(u);
-    setEditForm({ email: u.email, isActive: u.isActive });
+    setEditForm({ isActive: u.isActive });
     setEditError(""); setNewPassword(""); setResetSuccess(""); setResetError(""); setShowPassword(false);
   };
 
   const handleEdit = async () => {
     setEditError("");
-    if (!editForm.email?.trim()) { setEditError("Email is required."); return; }
     try {
       setEditLoading(true);
-      await userService.updateUser(editUser.id, editForm);
+      await userService.updateUser(editUser.id, { isActive: editForm.isActive });
       setEditUser(null);
       await reloadUsers();
     } catch (err) { setEditError(err.response?.data?.message || "Failed."); }
@@ -160,10 +162,17 @@ export default function SuperUserDashboardPage() {
     } finally { setLoadingQuestions(false); }
   };
 
-  const openEditQuiz = (quiz) => {
+  // FIX: load questions when opening edit quiz modal
+  const openEditQuiz = async (quiz) => {
     setEditQuiz(quiz);
     setEditQuizForm({ title: quiz.title, description: quiz.description ?? "", maxWrongAnswers: quiz.maxWrongAnswers, isActive: quiz.isActive });
     setEditQuizError("");
+    setEditQuizQuestions([]);
+    try {
+      setLoadingEditQuestions(true);
+      const data = await quizService.getQuizQuestions(quiz.id);
+      setEditQuizQuestions(data);
+    } finally { setLoadingEditQuestions(false); }
   };
 
   const handleEditQuiz = async () => {
@@ -215,6 +224,7 @@ export default function SuperUserDashboardPage() {
       await quizService.updateQuestion(editQuestion.quizId, editQuestion.id, editQuestionForm);
       const updated = await quizService.getQuizQuestions(editQuestion.quizId);
       setQuizQuestions((prev) => ({ ...prev, [editQuestion.quizId]: updated }));
+      setEditQuizQuestions(updated);
       setEditQuestion(null);
     } catch (err) { setEditQuestionError(err.response?.data?.message || "Failed."); }
     finally { setEditQuestionLoading(false); }
@@ -226,6 +236,7 @@ export default function SuperUserDashboardPage() {
       await quizService.deleteQuestion(deleteQuestionTarget.quizId, deleteQuestionTarget.id);
       const updated = await quizService.getQuizQuestions(deleteQuestionTarget.quizId);
       setQuizQuestions((prev) => ({ ...prev, [deleteQuestionTarget.quizId]: updated }));
+      setEditQuizQuestions(updated);
       setDeleteQuestionTarget(null);
     } catch (err) { alert(err.response?.data?.message || "Failed."); }
     finally { setDeleteQuestionLoading(false); }
@@ -302,24 +313,39 @@ export default function SuperUserDashboardPage() {
           {loadingCompleted ? <p className="text-sm text-[#454652]">Loading...</p>
           : completedData.length === 0 ? <p className="text-sm text-[#454652]">No completed assignments yet.</p>
           : (
-            <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+            <div className="space-y-4 max-h-[65vh] overflow-y-auto">
               {completedData.map((item, i) => (
-                <div key={i} className="p-3 rounded-xl bg-[#f8f7ff] space-y-1">
+                <div key={i} className="p-4 rounded-xl bg-[#f8f7ff] space-y-3 border border-[#e8e5ff]">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-[#000666] text-sm">{item.email}</p>
-                      <p className="text-xs text-[#454652]">{item.quizTitle}</p>
+                      <p className="font-bold text-[#000666] text-sm">{item.email}</p>
+                      <p className="text-xs text-[#454652] mt-0.5">{item.quizTitle}</p>
                     </div>
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${item.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {item.passed ? "Passed" : "Failed"}
                     </span>
                   </div>
-                  <div className="flex gap-3 text-xs text-[#454652]">
-                    <span>Score: {item.score}/{item.totalQuestions}</span>
+                  <div className="flex gap-3 text-xs text-[#454652] flex-wrap">
+                    <span>Score: <strong>{item.score}/{item.totalQuestions}</strong></span>
                     <span>Attempt #{item.attemptNumber}</span>
-                    {item.timeTaken && <span>⏱ {item.timeTaken}</span>}
+                    {item.timeTaken > 0 && <span>⏱ {Math.floor(item.timeTaken / 60)}m {item.timeTaken % 60}s</span>}
                     {item.completedAt && <span>{new Date(item.completedAt).toLocaleDateString()}</span>}
                   </div>
+                  {item.answers?.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-[#000666]">Answers:</p>
+                      {item.answers.map((ans, j) => (
+                        <div key={j} className={`p-2 rounded-lg text-xs border ${ans.isCorrect ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+                          <p className="font-medium text-[#000666] mb-1">{ans.questionText}</p>
+                          <div className="flex items-center gap-2">
+                            <span>{ans.isCorrect ? "✓" : "✗"}</span>
+                            <span className={ans.isCorrect ? "text-green-700" : "text-red-600"}>{ans.selectedOption}</span>
+                            {!ans.isCorrect && <span className="text-red-500 font-medium">— Wrong answer</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -394,8 +420,7 @@ export default function SuperUserDashboardPage() {
         <Modal title="Edit User" onClose={() => setEditUser(null)}>
           <div className="space-y-1">
             <label className="text-sm font-semibold text-[#000666]">Email</label>
-            <input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-              className="w-full px-4 py-2 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E]" />
+            <p className="px-4 py-2 rounded-xl bg-[#f5f2ff] text-[#000666] text-sm">{editUser.email}</p>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-semibold text-[#000666]">Status</label>
@@ -441,6 +466,7 @@ export default function SuperUserDashboardPage() {
         </Modal>
       )}
 
+      {/* EDIT QUIZ — now includes questions */}
       {editQuiz && (
         <Modal title="Edit Quiz" onClose={() => setEditQuiz(null)}>
           <div className="space-y-1">
@@ -461,6 +487,44 @@ export default function SuperUserDashboardPage() {
               <option value="0">Inactive</option>
             </select>
           </div>
+
+          {/* QUESTIONS inside Edit Quiz modal */}
+          <div className="border-t border-[#f0eeff] pt-4">
+            <p className="text-sm font-semibold text-[#000666] mb-3">
+              Questions ({editQuizQuestions.length})
+            </p>
+            {loadingEditQuestions ? (
+              <p className="text-sm text-[#454652]">Loading questions...</p>
+            ) : editQuizQuestions.length === 0 ? (
+              <p className="text-sm text-[#454652]">No questions yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-[35vh] overflow-y-auto">
+                {editQuizQuestions.map((q, qi) => (
+                  <div key={q.id} className="p-3 rounded-xl bg-[#f8f7ff] border border-[#e8e5ff]">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <p className="font-medium text-[#000666] text-sm flex-1">
+                        <span className="text-[#7c6ff7] mr-1">Q{qi + 1}.</span>{q.questionText}
+                      </p>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button onClick={() => openEditQuestion(q, editQuiz.id)}
+                          className="px-2 py-1 rounded-lg bg-[#e8e5ff] text-[#000666] text-xs font-semibold hover:bg-[#dcd7ff]">Edit</button>
+                        <button onClick={() => setDeleteQuestionTarget({ ...q, quizId: editQuiz.id })}
+                          className="px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100">Delete</button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {q.options.map((opt) => (
+                        <div key={opt.id} className={`flex items-center gap-2 text-xs px-2 py-1 rounded-lg ${opt.isCorrect ? "bg-green-50 text-green-700 font-semibold" : "text-[#454652]"}`}>
+                          <span>{opt.isCorrect ? "✓" : "○"}</span>{opt.optionText}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {editQuizError && <p className="text-red-600 text-sm">{editQuizError}</p>}
           <div className="flex justify-end gap-3">
             <button onClick={() => setEditQuiz(null)} className="px-4 py-2 rounded-xl bg-[#f3f1ff] text-[#000666] font-semibold">Cancel</button>

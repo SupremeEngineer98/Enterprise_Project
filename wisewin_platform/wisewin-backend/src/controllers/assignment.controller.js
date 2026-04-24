@@ -70,19 +70,69 @@ export function selfAssignQuiz(req, res, next) {
 }
 
 // =========================
-// COMPANY COMPLETED (stub για να μην σκάει)
+// COMPANY COMPLETED
 // =========================
 export function getCompanyCompletedAssignments(req, res, next) {
   try {
     const companyId = Number(req.params.companyId);
 
-    const rows = db.prepare(`
-      SELECT *
-      FROM quiz_assignments
-      WHERE status = 'COMPLETED'
-    `).all();
+    if (req.user.role === "Super user" && req.user.companyId !== companyId) {
+      throw new ApiError(403, "Forbidden");
+    }
 
-    res.json(rows);
+    const rows = db.prepare(`
+      SELECT
+        u.email,
+        q.title AS quizTitle,
+        at2.passed,
+        at2.current_score AS score,
+        at2.attempt_number AS attemptNumber,
+        at2.completed_at AS completedAt,
+        at2.time_taken_seconds AS timeTaken,
+        at2.id AS attemptId,
+        ques.question_text AS questionText,
+        qaa.is_correct AS isCorrect,
+        qo.option_text AS selectedOption,
+        (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) AS totalQuestions
+      FROM quiz_attempts at2
+      INNER JOIN quiz_assignments qa ON qa.id = at2.assignment_id
+      INNER JOIN users u ON u.id = qa.user_id
+      INNER JOIN quizzes q ON q.id = qa.quiz_id
+      LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = at2.id
+      LEFT JOIN questions ques ON ques.id = qaa.question_id
+      LEFT JOIN question_options qo ON qo.id = qaa.selected_option_id
+      WHERE u.company_id = ?
+        AND at2.status = 'COMPLETED'
+      ORDER BY at2.completed_at DESC, at2.id, qaa.question_id
+    `).all(companyId);
+
+    // Group by attemptId
+    const grouped = {};
+    for (const row of rows) {
+      if (!grouped[row.attemptId]) {
+        grouped[row.attemptId] = {
+          email: row.email,
+          quizTitle: row.quizTitle,
+          passed: Boolean(row.passed),
+          score: row.score,
+          attemptNumber: row.attemptNumber,
+          completedAt: row.completedAt,
+          timeTaken: row.timeTaken,
+          totalQuestions: row.totalQuestions,
+          answers: [],
+        };
+      }
+
+      if (row.questionText) {
+        grouped[row.attemptId].answers.push({
+          questionText: row.questionText,
+          selectedOption: row.selectedOption,
+          isCorrect: Boolean(row.isCorrect),
+        });
+      }
+    }
+
+    return res.status(200).json(Object.values(grouped));
   } catch (err) {
     next(err);
   }

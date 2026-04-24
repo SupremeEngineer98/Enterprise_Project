@@ -20,6 +20,8 @@ export default function AdminQuizzesPage() {
   const [editQuizForm, setEditQuizForm] = useState({});
   const [editQuizLoading, setEditQuizLoading] = useState(false);
   const [editQuizError, setEditQuizError] = useState("");
+  const [editQuizQuestions, setEditQuizQuestions] = useState([]);
+  const [loadingEditQuestions, setLoadingEditQuestions] = useState(false);
 
   const [deleteQuizTarget, setDeleteQuizTarget] = useState(null);
   const [deleteQuizLoading, setDeleteQuizLoading] = useState(false);
@@ -56,11 +58,19 @@ export default function AdminQuizzesPage() {
     }
   };
 
-  const openEditQuiz = (quiz, e) => {
+  const openEditQuiz = async (quiz, e) => {
     e.stopPropagation();
     setEditQuiz(quiz);
     setEditQuizForm({ title: quiz.title, description: quiz.description ?? "", maxWrongAnswers: quiz.maxWrongAnswers, isActive: quiz.isActive });
     setEditQuizError("");
+    setEditQuizQuestions([]);
+    try {
+      setLoadingEditQuestions(true);
+      const data = await quizService.getQuizQuestions(quiz.id);
+      setEditQuizQuestions(data);
+    } finally {
+      setLoadingEditQuestions(false);
+    }
   };
 
   const handleEditQuiz = async () => {
@@ -123,8 +133,10 @@ export default function AdminQuizzesPage() {
     try {
       setEditQuestionLoading(true);
       await quizService.updateQuestion(editQuestion.quizId, editQuestion.id, editQuestionForm);
+      // Refresh questions in both the list and the edit modal
       const updated = await quizService.getQuizQuestions(editQuestion.quizId);
       setQuestions((prev) => ({ ...prev, [editQuestion.quizId]: updated }));
+      setEditQuizQuestions(updated);
       setEditQuestion(null);
     } catch (err) {
       setEditQuestionError(err.response?.data?.message || "Failed to update question.");
@@ -139,6 +151,7 @@ export default function AdminQuizzesPage() {
       await quizService.deleteQuestion(deleteQuestionTarget.quizId, deleteQuestionTarget.id);
       const updated = await quizService.getQuizQuestions(deleteQuestionTarget.quizId);
       setQuestions((prev) => ({ ...prev, [deleteQuestionTarget.quizId]: updated }));
+      setEditQuizQuestions(updated);
       setDeleteQuestionTarget(null);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete question.");
@@ -223,7 +236,7 @@ export default function AdminQuizzesPage() {
         })}
       </section>
 
-      {/* EDIT QUIZ */}
+      {/* EDIT QUIZ — now includes questions */}
       {editQuiz && (
         <Modal title="Edit Quiz" onClose={() => setEditQuiz(null)}>
           <FormField label="Title">
@@ -245,6 +258,52 @@ export default function AdminQuizzesPage() {
               <option value="0">Inactive</option>
             </select>
           </FormField>
+
+          {/* QUESTIONS SECTION */}
+          <div className="border-t border-[#f0eeff] pt-4">
+            <p className="text-sm font-semibold text-[#000666] mb-3">
+              Questions ({editQuizQuestions.length})
+            </p>
+            {loadingEditQuestions ? (
+              <p className="text-sm text-[#454652]">Loading questions...</p>
+            ) : editQuizQuestions.length === 0 ? (
+              <p className="text-sm text-[#454652]">No questions yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+                {editQuizQuestions.map((q, qi) => (
+                  <div key={q.id} className="p-3 rounded-xl bg-[#f8f7ff] border border-[#e8e5ff]">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <p className="font-medium text-[#000666] text-sm flex-1">
+                        <span className="text-[#7c6ff7] mr-1">Q{qi + 1}.</span>{q.questionText}
+                      </p>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => openEditQuestion(q, editQuiz.id)}
+                          className="px-2 py-1 rounded-lg bg-[#e8e5ff] text-[#000666] text-xs font-semibold hover:bg-[#dcd7ff]"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteQuestionTarget({ ...q, quizId: editQuiz.id })}
+                          className="px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {q.options.map((opt) => (
+                        <div key={opt.id} className={`flex items-center gap-2 text-xs px-2 py-1 rounded-lg ${opt.isCorrect ? "bg-green-50 text-green-700 font-semibold" : "text-[#454652]"}`}>
+                          <span>{opt.isCorrect ? "✓" : "○"}</span>{opt.optionText}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {editQuizError && <p className="text-red-600 text-sm">{editQuizError}</p>}
           <ModalActions onCancel={() => setEditQuiz(null)} onConfirm={handleEditQuiz} confirmLabel="Save Changes" loading={editQuizLoading} />
         </Modal>

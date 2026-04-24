@@ -23,8 +23,8 @@ router.post("/", authMiddleware, requireRole("Administrator", "Super user"), cre
 // Get all users (admin only)
 router.get("/", authMiddleware, requireRole("Administrator"), getAllUsers);
 
-// Update user (admin only)
-router.put("/:userId", authMiddleware, requireRole("Administrator"), updateUser);
+// Update user (admin + super user)
+router.put("/:userId", authMiddleware, requireRole("Administrator", "Super user"), updateUser);
 
 // Delete user (admin only)
 router.delete("/:userId", authMiddleware, requireRole("Administrator"), deleteUser);
