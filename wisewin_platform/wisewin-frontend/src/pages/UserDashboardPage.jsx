@@ -47,46 +47,69 @@ export default function UserDashboardPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading user dashboard...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading user dashboard...
+      </div>
+    );
   }
 
-  const activeAssignments = assignments.filter((a) => a.status !== "COMPLETED");
-  const completedAssignments = assignments.filter((a) => a.status === "COMPLETED");
+  const activeAssignments = assignments.filter(
+    (a) => a.status !== "COMPLETED"
+  );
+  const completedAssignments = assignments.filter(
+    (a) => a.status === "COMPLETED"
+  );
 
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="User Dashboard">
+
+      {/* HERO SECTION */}
       <section className="relative overflow-hidden bg-[#1A237E] rounded-3xl p-10 text-white shadow-[0_30px_60px_rgba(26,35,126,0.3)]">
         <div className="relative z-10">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
             Welcome back
           </h1>
+
           <p className="text-lg opacity-90 max-w-md">
             Track your assigned training, complete quizzes, and review your results.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate("/user/scoreboard")}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#1A237E] font-semibold hover:bg-[#f3f1ff] transition-all"
-          >
-            <span className="material-symbols-outlined text-base">leaderboard</span>
-            View Scoreboard
-          </button>
-          <button
-  type="button"
-  onClick={() => navigate("/user/self-training")}
-  className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#e8e5ff] text-[#1A237E] font-semibold hover:bg-[#dcd7ff] transition-all">
-  <span className="material-symbols-outlined text-base">school</span>
-  Self Training
-</button>
+
+          {/* BUTTONS */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/user/scoreboard")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#1A237E] font-semibold hover:bg-[#f3f1ff] transition-all"
+            >
+              <span className="material-symbols-outlined text-base">
+                leaderboard
+              </span>
+              View Scoreboard
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/user/self-training")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#e8e5ff] text-[#1A237E] font-semibold hover:bg-[#dcd7ff] transition-all"
+            >
+              <span className="material-symbols-outlined text-base">
+                school
+              </span>
+              Self Training
+            </button>
+          </div>
         </div>
       </section>
 
-      {error ? (
-        <div className="p-4 rounded-xl bg-red-50 text-red-700">
+      {/* ERROR */}
+      {error && (
+        <div className="p-4 rounded-xl bg-red-50 text-red-700 mt-4">
           {error}
         </div>
-      ) : null}
+      )}
 
+      {/* ACTIVE ASSIGNMENTS */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-extrabold text-[#000666] tracking-tight">
@@ -101,23 +124,33 @@ export default function UserDashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {activeAssignments.map((assignment) => (
-              <div key={assignment.assignmentId} className="flex flex-col gap-2">
+              <div
+                key={assignment.assignmentId}
+                className="flex flex-col gap-2"
+              >
                 <QuizCard
                   quiz={{
                     assignmentId: assignment.assignmentId,
                     attemptId: assignment.attemptId,
                     title: assignment.quizTitle,
-                    description: `${assignment.description || "Assigned quiz"} • Attempts used: ${assignment.attemptsUsed}`,
+                    description: `${
+                      assignment.description || "Assigned quiz"
+                    } • Attempts used: ${assignment.attemptsUsed}`,
                     dueDate: assignment.dueDate || "No due date",
                     duration: assignment.totalQuestions || 0,
                     status: assignment.status,
                   }}
                   onAction={handleQuizAction}
                 />
+
                 {assignment.attemptsUsed > 0 && (
                   <button
                     type="button"
-                    onClick={() => navigate(`/assignments/${assignment.assignmentId}/history`)}
+                    onClick={() =>
+                      navigate(
+                        `/assignments/${assignment.assignmentId}/history`
+                      )
+                    }
                     className="w-full px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff] text-sm"
                   >
                     View Attempt History ({assignment.attemptsUsed})
@@ -129,6 +162,7 @@ export default function UserDashboardPage() {
         )}
       </section>
 
+      {/* COMPLETED */}
       <section>
         <h2 className="text-2xl font-extrabold text-[#000666] tracking-tight mb-6">
           Completed Training
@@ -142,6 +176,7 @@ export default function UserDashboardPage() {
           <div className="space-y-3">
             {completedAssignments.map((assignment) => {
               const passed = assignment.latestPassed === true;
+
               const summaryText =
                 assignment.latestPassed === null
                   ? "Completed attempt"
@@ -155,9 +190,12 @@ export default function UserDashboardPage() {
                   className="flex justify-between items-center p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all"
                 >
                   <div>
-                    <p className="font-medium text-[#000666]">{assignment.quizTitle}</p>
+                    <p className="font-medium text-[#000666]">
+                      {assignment.quizTitle}
+                    </p>
                     <p className="text-sm text-[#454652]">
-                      {summaryText} • Attempts used: {assignment.attemptsUsed}
+                      {summaryText} • Attempts used:{" "}
+                      {assignment.attemptsUsed}
                     </p>
                   </div>
 
@@ -174,7 +212,11 @@ export default function UserDashboardPage() {
 
                     <button
                       type="button"
-                      onClick={() => navigate(`/assignments/${assignment.assignmentId}/history`)}
+                      onClick={() =>
+                        navigate(
+                          `/assignments/${assignment.assignmentId}/history`
+                        )
+                      }
                       className="px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff]"
                     >
                       View History
