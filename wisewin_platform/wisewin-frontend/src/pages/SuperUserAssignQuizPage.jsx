@@ -7,6 +7,8 @@ import { userService } from "../services/userService";
 const sidebarItems = [
   { to: "/super-user", icon: "dashboard", label: "Overview" },
   { to: "/super-user/assign", icon: "assignment_add", label: "Assign Quiz" },
+  { to: "/super-user/create-user", icon: "person_add", label: "Create User" },
+  { to: "/super-user/create-quiz", icon: "quiz", label: "Create Quiz" },
 ];
 
 export default function SuperUserAssignQuizPage() {
@@ -16,12 +18,7 @@ export default function SuperUserAssignQuizPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [form, setForm] = useState({
-    userId: "",
-    quizId: "",
-    dueDate: "",
-  });
-
+  const [form, setForm] = useState({ userId: "", quizId: "", dueDate: "" });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -34,45 +31,24 @@ export default function SuperUserAssignQuizPage() {
           quizService.getVisibleQuizzes(),
         ]);
 
-        const companyUsers = usersData.filter((u) => u.role === "User");
-        setUsers(companyUsers);
-
-        // visible quizzes for company
-        const availableQuizzes = quizzesData.filter(
+        setUsers(usersData.filter((u) => u.role === "User"));
+        setQuizzes(quizzesData.filter(
           (q) => q.isActive && (q.companyId === null || q.companyId === user.companyId)
-        );
-
-        setQuizzes(availableQuizzes);
+        ));
       } catch (err) {
-        console.error(err);
         setError(err.response?.data?.message || "Failed to load assignment data");
       } finally {
         setLoading(false);
       }
     }
 
-    if (user?.companyId) {
-      loadData();
-    }
+    if (user?.companyId) loadData();
   }, [user]);
 
-  const selectedUser = useMemo(
-    () => users.find((u) => String(u.id) === String(form.userId)),
-    [users, form.userId]
-  );
+  const selectedUser = useMemo(() => users.find((u) => String(u.id) === String(form.userId)), [users, form.userId]);
+  const selectedQuiz = useMemo(() => quizzes.find((q) => String(q.id) === String(form.quizId)), [quizzes, form.quizId]);
 
-  const selectedQuiz = useMemo(
-    () => quizzes.find((q) => String(q.id) === String(form.quizId)),
-    [quizzes, form.quizId]
-  );
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,27 +62,13 @@ export default function SuperUserAssignQuizPage() {
 
     try {
       setSubmitting(true);
-
-      const payload = {
+      await quizService.assignQuiz(form.quizId, {
         userId: Number(form.userId),
         dueDate: form.dueDate ? `${form.dueDate}T23:59:59Z` : null,
-      };
-
-      const response = await quizService.assignQuiz(form.quizId, payload);
-
-      setMessage(
-        `Quiz assigned successfully to ${selectedUser?.email || "user"}`
-      );
-
-      setForm({
-        userId: "",
-        quizId: "",
-        dueDate: "",
       });
-
-      console.log("Assignment created:", response);
+      setMessage(`Quiz assigned successfully to ${selectedUser?.email || "user"}`);
+      setForm({ userId: "", quizId: "", dueDate: "" });
     } catch (err) {
-      console.error(err);
       setError(err.response?.data?.message || "Could not assign quiz");
     } finally {
       setSubmitting(false);
@@ -114,85 +76,48 @@ export default function SuperUserAssignQuizPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading assignment page...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="Assign Quiz">
       <div>
         <h1 className="text-3xl font-bold text-[#000666]">Assign Training Quiz</h1>
-        <p className="text-[#454652] mt-2">
-          Select a user, choose a visible quiz, and assign a due date.
-        </p>
+        <p className="text-[#454652] mt-2">Select a user, choose a visible quiz, and assign a due date.</p>
       </div>
 
-      {error ? (
-        <div className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>
-      ) : null}
-
-      {message ? (
-        <div className="p-4 rounded-xl bg-green-50 text-green-700">{message}</div>
-      ) : null}
+      {error && <div className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>}
+      {message && <div className="p-4 rounded-xl bg-green-50 text-green-700">{message}</div>}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white rounded-3xl p-8 shadow-[0_20px_60px_rgba(26,35,126,0.08)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-[#454652] mb-2">
-                Select User
-              </label>
-              <select
-                name="userId"
-                value={form.userId}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]"
-              >
+              <label className="block text-sm font-medium text-[#454652] mb-2">Select User</label>
+              <select name="userId" value={form.userId} onChange={handleChange}
+                className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]">
                 <option value="">Choose a user</option>
-                {users.map((companyUser) => (
-                  <option key={companyUser.id} value={companyUser.id}>
-                    {companyUser.email}
-                  </option>
-                ))}
+                {users.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#454652] mb-2">
-                Select Quiz
-              </label>
-              <select
-                name="quizId"
-                value={form.quizId}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]"
-              >
+              <label className="block text-sm font-medium text-[#454652] mb-2">Select Quiz</label>
+              <select name="quizId" value={form.quizId} onChange={handleChange}
+                className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]">
                 <option value="">Choose a quiz</option>
-                {quizzes.map((quiz) => (
-                  <option key={quiz.id} value={quiz.id}>
-                    {quiz.title} ({quiz.sourceType})
-                  </option>
-                ))}
+                {quizzes.map((q) => <option key={q.id} value={q.id}>{q.title} ({q.sourceType})</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#454652] mb-2">
-                Due Date
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                value={form.dueDate}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]"
-              />
+              <label className="block text-sm font-medium text-[#454652] mb-2">Due Date</label>
+              <input type="date" name="dueDate" value={form.dueDate} onChange={handleChange}
+                className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]" />
             </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-3 rounded-xl bg-[#000666] text-white font-semibold hover:opacity-90 disabled:opacity-60"
-            >
+            <button type="submit" disabled={submitting}
+              className="px-6 py-3 rounded-xl bg-[#000666] text-white font-semibold hover:opacity-90 disabled:opacity-60">
               {submitting ? "Assigning..." : "Assign Quiz"}
             </button>
           </form>
@@ -200,32 +125,19 @@ export default function SuperUserAssignQuizPage() {
 
         <div className="bg-white rounded-3xl p-6 shadow-[0_20px_60px_rgba(26,35,126,0.08)]">
           <h2 className="text-xl font-bold text-[#000666] mb-4">Assignment Summary</h2>
-
           <div className="space-y-4 text-sm">
             <div className="rounded-2xl bg-[#f5f2ff] p-4">
               <p className="text-[#454652] mb-1">Selected User</p>
-              <p className="font-semibold text-[#000666]">
-                {selectedUser?.email || "None selected"}
-              </p>
+              <p className="font-semibold text-[#000666]">{selectedUser?.email || "None selected"}</p>
             </div>
-
             <div className="rounded-2xl bg-[#f5f2ff] p-4">
               <p className="text-[#454652] mb-1">Selected Quiz</p>
-              <p className="font-semibold text-[#000666]">
-                {selectedQuiz?.title || "None selected"}
-              </p>
-              {selectedQuiz ? (
-                <p className="text-xs text-[#767683] mt-1">
-                  Type: {selectedQuiz.sourceType}
-                </p>
-              ) : null}
+              <p className="font-semibold text-[#000666]">{selectedQuiz?.title || "None selected"}</p>
+              {selectedQuiz && <p className="text-xs text-[#767683] mt-1">Type: {selectedQuiz.sourceType}</p>}
             </div>
-
             <div className="rounded-2xl bg-[#f5f2ff] p-4">
               <p className="text-[#454652] mb-1">Due Date</p>
-              <p className="font-semibold text-[#000666]">
-                {form.dueDate || "Not set"}
-              </p>
+              <p className="font-semibold text-[#000666]">{form.dueDate || "Not set"}</p>
             </div>
           </div>
         </div>
