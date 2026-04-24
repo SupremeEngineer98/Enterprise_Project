@@ -71,6 +71,13 @@ export default function UserDashboardPage() {
             <span className="material-symbols-outlined text-base">leaderboard</span>
             View Scoreboard
           </button>
+          <button
+  type="button"
+  onClick={() => navigate("/user/self-training")}
+  className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#e8e5ff] text-[#1A237E] font-semibold hover:bg-[#dcd7ff] transition-all">
+  <span className="material-symbols-outlined text-base">school</span>
+  Self Training
+</button>
         </div>
       </section>
 

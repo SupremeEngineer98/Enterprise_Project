@@ -22,6 +22,7 @@ import AdminCompaniesPage from "../pages/AdminCompaniesPage";
 import AdminUsersPage from "../pages/AdminUsersPage";
 import AdminSuperUsersPage from "../pages/AdminSuperUsersPage";
 import AdminQuizzesPage from "../pages/AdminQuizzesPage";
+import SelfTrainingPage from "../pages/SelfTrainingPage";
 
 
 function ProtectedRoute({ allowedRoles }) {
@@ -108,7 +109,8 @@ export const router = createBrowserRouter([
       { path: "/assignments/:assignmentId/history", element: <AssignmentHistoryPage /> },
       { path: "/user/change-password", element: <ChangePasswordPage /> },
       { path: "/attempts/:attemptId/review", element: <AttemptReviewPage /> },
-      { path: "/user/scoreboard", element: <ScoreboardPage /> }
+      { path: "/user/scoreboard", element: <ScoreboardPage /> },
+      { path: "/user/self-training", element: <SelfTrainingPage /> },
     ],
   },
 ]);

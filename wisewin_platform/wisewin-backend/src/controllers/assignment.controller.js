@@ -21,11 +21,7 @@ export function getMyAssignments(req, res, next) {
           WHERE assignment_id = qa.id AND status = 'IN_PROGRESS'
           LIMIT 1
         ) AS attemptId,
-        (
-          SELECT COUNT(*)
-          FROM quiz_attempts
-          WHERE assignment_id = qa.id
-        ) AS attemptsUsed,
+        
         (
           SELECT passed
           FROM quiz_attempts
@@ -148,6 +144,7 @@ export function createAssignment(req, res, next) {
         quiz_id,
         user_id,
         assigned_by,
+        assigned_by,
         assigned_at,
         due_date,
         status,
@@ -182,6 +179,53 @@ export function createAssignment(req, res, next) {
       message: "Quiz assigned successfully",
       assignment,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+export function selfAssignQuiz(req, res, next) {
+  try {
+    const quizId = Number(req.params.quizId);
+
+    const quiz = db.prepare(`
+      SELECT id FROM quizzes WHERE id = ? AND is_active = 1
+    `).get(quizId);
+
+    if (!quiz) throw new ApiError(404, "Quiz not found");
+
+    const existing = db.prepare(`
+      SELECT id FROM quiz_assignments
+      WHERE user_id = ? AND quiz_id = ? AND status IN ('ASSIGNED', 'IN_PROGRESS')
+    `).get(req.user.sub, quizId);
+
+    if (existing) {
+      throw new ApiError(400, "Quiz already assigned");
+    }
+
+    const result = db.prepare(`
+      INSERT INTO quiz_assignments (
+        quiz_id,
+        user_id,
+        assigned_by,
+        assigned_at,
+        due_date,
+        status,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP, NULL, 'ASSIGNED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).run(
+      quizId,
+      req.user.sub,
+      req.user.sub
+    );
+
+    const assignment = db.prepare(`
+      SELECT id, user_id AS userId, quiz_id AS quizId, status
+      FROM quiz_assignments WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    res.status(201).json({ assignment });
   } catch (error) {
     next(error);
   }

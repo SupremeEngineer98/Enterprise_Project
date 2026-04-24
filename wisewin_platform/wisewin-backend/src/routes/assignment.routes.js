@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { getMyAssignments, createAssignment } from "../controllers/assignment.controller.js";
+import { selfAssignQuiz } from "../controllers/assignment.controller.js";
 
 const router = Router();
 
@@ -58,6 +59,13 @@ router.post(
   authMiddleware,
   requireRole("Administrator", "Super user"),
   createAssignment
+);
+
+router.post(
+  "/quizzes/:quizId/self",
+  authMiddleware,
+  requireRole("User"),
+  selfAssignQuiz
 );
 
 export default router;

@@ -10,6 +10,11 @@ const sidebarItems = [
   { to: "/admin/quizzes", icon: "quiz", label: "Quizzes" },
 ];
 
+function generatePassword() {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 export default function AdminSuperUsersPage() {
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -19,6 +24,12 @@ export default function AdminSuperUsersPage() {
   const [editForm, setEditForm] = useState({});
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
+
+  const [newPassword, setNewPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -44,6 +55,10 @@ export default function AdminSuperUsersPage() {
     setEditUser(user);
     setEditForm({ email: user.email, companyId: user.companyId, isActive: user.isActive });
     setEditError("");
+    setNewPassword("");
+    setResetSuccess("");
+    setResetError("");
+    setShowPassword(false);
   };
 
   const handleEdit = async () => {
@@ -58,6 +73,22 @@ export default function AdminSuperUsersPage() {
       setEditError(err.response?.data?.message || "Failed to update user.");
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setResetError("");
+    setResetSuccess("");
+    if (!newPassword.trim()) { setResetError("Please enter or generate a password."); return; }
+    try {
+      setResetLoading(true);
+      await userService.changePassword(editUser.id, { newPassword });
+      setResetSuccess("Password updated successfully!");
+      setNewPassword("");
+    } catch (err) {
+      setResetError(err.response?.data?.message || "Failed to reset password.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -98,17 +129,12 @@ export default function AdminSuperUsersPage() {
                 <p className="text-sm text-[#454652]">{user.companyName ?? "No company"}</p>
               </div>
             </div>
-
             <div className="flex items-center gap-2">
               <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                 {user.isActive ? "Active" : "Inactive"}
               </span>
-              <button onClick={() => openEdit(user)} className="px-3 py-1.5 rounded-lg bg-[#e8e5ff] text-[#000666] text-sm font-semibold hover:bg-[#dcd7ff] transition">
-                Edit
-              </button>
-              <button onClick={() => setDeleteTarget(user)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition">
-                Delete
-              </button>
+              <button onClick={() => openEdit(user)} className="px-3 py-1.5 rounded-lg bg-[#e8e5ff] text-[#000666] text-sm font-semibold hover:bg-[#dcd7ff] transition">Edit</button>
+              <button onClick={() => setDeleteTarget(user)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition">Delete</button>
             </div>
           </div>
         ))}
@@ -116,6 +142,7 @@ export default function AdminSuperUsersPage() {
 
       {editUser && (
         <Modal title="Edit Super User" onClose={() => setEditUser(null)}>
+          {/* ── Info ── */}
           <FormField label="Email">
             <input type="email" value={editForm.email}
               onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
@@ -139,6 +166,36 @@ export default function AdminSuperUsersPage() {
           </FormField>
           {editError && <p className="text-red-600 text-sm">{editError}</p>}
           <ModalActions onCancel={() => setEditUser(null)} onConfirm={handleEdit} confirmLabel="Save Changes" loading={editLoading} />
+
+          {/* ── Reset Password ── */}
+          <div className="border-t border-[#f0eeff] pt-4 space-y-3">
+            <p className="text-sm font-semibold text-[#000666]">Reset Password</p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password"
+                  className="w-full px-4 py-2 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E] text-sm pr-10"
+                />
+                <button type="button" onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#454652] text-xs">
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <button onClick={() => setNewPassword(generatePassword())}
+                className="px-3 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] text-sm font-semibold hover:bg-[#dcd7ff] transition whitespace-nowrap">
+                Generate
+              </button>
+            </div>
+            {resetSuccess && <p className="text-green-600 text-sm">{resetSuccess}</p>}
+            {resetError && <p className="text-red-600 text-sm">{resetError}</p>}
+            <button onClick={handleResetPassword} disabled={resetLoading}
+              className="w-full py-2 rounded-xl bg-[#1A237E] text-white font-semibold hover:bg-[#000666] transition disabled:opacity-50 text-sm">
+              {resetLoading ? "Updating..." : "Update Password"}
+            </button>
+          </div>
         </Modal>
       )}
 
@@ -156,7 +213,7 @@ export default function AdminSuperUsersPage() {
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 mx-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h3 className="text-xl font-bold text-[#000666]">{title}</h3>
           <button onClick={onClose} className="text-[#454652] hover:text-[#000666] text-xl font-bold">×</button>

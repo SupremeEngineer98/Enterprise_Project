@@ -123,3 +123,42 @@ export function deleteQuiz(req, res, next) {
     next(error);
   }
 }
+
+// POST /api/assignments/quizzes/:quizId/self
+export function selfAssignQuiz(req, res, next) {
+  try {
+    const quizId = Number(req.params.quizId);
+
+    // check quiz exists
+    const quiz = db.prepare(`
+      SELECT id FROM quizzes WHERE id = ? AND is_active = 1
+    `).get(quizId);
+
+    if (!quiz) throw new ApiError(404, "Quiz not found");
+
+    // check if already assigned
+    const existing = db.prepare(`
+      SELECT id FROM assignments
+      WHERE user_id = ? AND quiz_id = ? AND status IN ('ASSIGNED', 'IN_PROGRESS')
+    `).get(req.user.sub, quizId);
+
+    if (existing) {
+      throw new ApiError(400, "Quiz already assigned");
+    }
+
+    // create assignment
+    const result = db.prepare(`
+      INSERT INTO assignments (user_id, quiz_id, status, attempts_used, created_at)
+      VALUES (?, ?, 'ASSIGNED', 0, CURRENT_TIMESTAMP)
+    `).run(req.user.sub, quizId);
+
+    const assignment = db.prepare(`
+      SELECT id, user_id AS userId, quiz_id AS quizId, status
+      FROM assignments WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    res.status(201).json({ assignment });
+  } catch (error) {
+    next(error);
+  }
+}
