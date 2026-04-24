@@ -46,6 +46,13 @@ export default function SuperUserDashboardPage() {
   const [completedData, setCompletedData] = useState([]);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
 
+  const [openPendingUserId, setOpenPendingUserId] = useState(null);
+  const [pendingQuizzes, setPendingQuizzes] = useState({});
+  const [loadingPendingQuizzes, setLoadingPendingQuizzes] = useState(false);
+  const [openPendingQuizId, setOpenPendingQuizId] = useState(null);
+  const [pendingQuizQuestions, setPendingQuizQuestions] = useState({});
+  const [loadingPendingQuestions, setLoadingPendingQuestions] = useState(false);
+
   const [openQuizId, setOpenQuizId] = useState(null);
   const [quizQuestions, setQuizQuestions] = useState({});
   const [loadingQuestions, setLoadingQuestions] = useState(false);
@@ -95,12 +102,43 @@ export default function SuperUserDashboardPage() {
 
   const openPending = async () => {
     setActiveModal("pending");
+    setOpenPendingUserId(null);
+    setOpenPendingQuizId(null);
     if (pendingData.length > 0) return;
     try {
       setLoadingPending(true);
       const data = await userService.getUserComparison(user.companyId);
       setPendingData(data.filter((u) => u.totalPending > 0));
     } finally { setLoadingPending(false); }
+  };
+
+  const handleTogglePendingUser = async (userId) => {
+    if (openPendingUserId === userId) {
+      setOpenPendingUserId(null);
+      setOpenPendingQuizId(null);
+      return;
+    }
+    setOpenPendingUserId(userId);
+    setOpenPendingQuizId(null);
+    if (pendingQuizzes[userId]) return;
+    try {
+      setLoadingPendingQuizzes(true);
+      const data = await quizService.getUserPendingAssignments(userId);
+      setPendingQuizzes((prev) => ({ ...prev, [userId]: data }));
+    } catch (err) { console.error(err); }
+    finally { setLoadingPendingQuizzes(false); }
+  };
+
+  const handleTogglePendingQuiz = async (quizId) => {
+    if (openPendingQuizId === quizId) { setOpenPendingQuizId(null); return; }
+    setOpenPendingQuizId(quizId);
+    if (pendingQuizQuestions[quizId]) return;
+    try {
+      setLoadingPendingQuestions(true);
+      const data = await quizService.getQuizQuestions(quizId);
+      setPendingQuizQuestions((prev) => ({ ...prev, [quizId]: data }));
+    } catch (err) { console.error(err); }
+    finally { setLoadingPendingQuestions(false); }
   };
 
   const openCompleted = async () => {
@@ -296,13 +334,71 @@ export default function SuperUserDashboardPage() {
           {loadingPending ? <p className="text-sm text-[#454652]">Loading...</p>
           : pendingData.length === 0 ? <p className="text-sm text-[#454652]">No pending assignments.</p>
           : (
-            <div className="space-y-2 max-h-[55vh] overflow-y-auto">
-              {pendingData.map((u) => (
-                <div key={u.userId} className="flex justify-between items-center p-3 rounded-xl bg-[#f8f7ff]">
-                  <p className="font-medium text-[#000666] text-sm">{u.email}</p>
-                  <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">{u.totalPending} pending</span>
-                </div>
-              ))}
+            <div className="space-y-2 max-h-[65vh] overflow-y-auto">
+              {pendingData.map((u) => {
+                const isUserOpen = openPendingUserId === u.userId;
+                const userQuizzes = pendingQuizzes[u.userId];
+                return (
+                  <div key={u.userId} className="rounded-xl overflow-hidden border border-[#e8e5ff]">
+                    <div
+                      className="flex justify-between items-center p-3 bg-[#f8f7ff] cursor-pointer hover:bg-[#f0eeff] transition-colors"
+                      onClick={() => handleTogglePendingUser(u.userId)}
+                    >
+                      <p className="font-medium text-[#000666] text-sm">{u.email}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">{u.totalPending} pending</span>
+                        <span className="text-xs text-[#454652]">{isUserOpen ? "▲" : "▼"}</span>
+                      </div>
+                    </div>
+                    {isUserOpen && (
+                      <div className="border-t border-[#e8e5ff] bg-white px-3 pb-3 pt-2 space-y-2">
+                        {loadingPendingQuizzes && !userQuizzes ? (
+                          <p className="text-xs text-[#454652] py-1">Loading quizzes...</p>
+                        ) : userQuizzes && userQuizzes.length === 0 ? (
+                          <p className="text-xs text-[#454652] py-1">No pending quizzes found.</p>
+                        ) : userQuizzes ? userQuizzes.map((quiz) => {
+                          const isQuizOpen = openPendingQuizId === quiz.quizId;
+                          const questions = pendingQuizQuestions[quiz.quizId];
+                          return (
+                            <div key={quiz.quizId} className="rounded-lg border border-[#e8e5ff] overflow-hidden">
+                              <div
+                                className="flex justify-between items-center px-3 py-2 bg-[#f8f7ff] cursor-pointer hover:bg-[#f0eeff] transition-colors"
+                                onClick={() => handleTogglePendingQuiz(quiz.quizId)}
+                              >
+                                <p className="text-sm font-medium text-[#000666]">{quiz.quizTitle}</p>
+                                <span className="text-xs text-[#454652]">{isQuizOpen ? "▲" : "▼"}</span>
+                              </div>
+                              {isQuizOpen && (
+                                <div className="border-t border-[#e8e5ff] px-3 pb-3 pt-2 space-y-3">
+                                  {loadingPendingQuestions && !questions ? (
+                                    <p className="text-xs text-[#454652]">Loading questions...</p>
+                                  ) : questions && questions.length === 0 ? (
+                                    <p className="text-xs text-[#454652]">No questions found.</p>
+                                  ) : questions ? questions.map((question, qi) => (
+                                    <div key={question.id} className="p-2 rounded-lg bg-[#f8f7ff] border border-[#e8e5ff]">
+                                      <p className="text-xs font-medium text-[#000666] mb-2">
+                                        <span className="text-[#7c6ff7]">Q{qi + 1}. </span>{question.questionText}
+                                      </p>
+                                      <div className="space-y-1">
+                                        {question.options.map((opt, oi) => (
+                                          <div key={opt.id} className="text-xs px-2 py-1.5 rounded-lg border border-[#e8e5ff] bg-white text-[#454652] flex items-center gap-2">
+                                            <span className="text-[#7c6ff7] font-semibold flex-shrink-0">{String.fromCharCode(65 + oi)}.</span>
+                                            {opt.optionText}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )) : null}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }) : null}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </Modal>

@@ -70,6 +70,34 @@ export function selfAssignQuiz(req, res, next) {
 }
 
 // =========================
+// GET USER PENDING ASSIGNMENTS
+// =========================
+export function getUserPendingAssignments(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+
+    const rows = db.prepare(`
+      SELECT
+        qa.id AS assignmentId,
+        qa.status,
+        q.id AS quizId,
+        q.title AS quizTitle,
+        q.description AS quizDescription,
+        q.max_wrong_answers AS maxWrongAnswers,
+        qa.due_date AS dueDate
+      FROM quiz_assignments qa
+      JOIN quizzes q ON qa.quiz_id = q.id
+      WHERE qa.user_id = ? AND qa.status IN ('ASSIGNED', 'IN_PROGRESS')
+      ORDER BY qa.assigned_at DESC
+    `).all(userId);
+
+    return res.status(200).json(rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// =========================
 // COMPANY COMPLETED
 // =========================
 export function getCompanyCompletedAssignments(req, res, next) {

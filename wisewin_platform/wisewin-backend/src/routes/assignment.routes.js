@@ -5,6 +5,7 @@ import {
   getMyAssignments,
   selfAssignQuiz,
   getCompanyCompletedAssignments,
+  getUserPendingAssignments,
 } from "../controllers/assignment.controller.js";
 
 const router = Router();
@@ -16,6 +17,13 @@ router.post(
   authMiddleware,
   requireRole("User"),
   selfAssignQuiz
+);
+
+router.get(
+  "/user/:userId/pending",
+  authMiddleware,
+  requireRole("Administrator", "Super user"),
+  getUserPendingAssignments
 );
 
 router.get(

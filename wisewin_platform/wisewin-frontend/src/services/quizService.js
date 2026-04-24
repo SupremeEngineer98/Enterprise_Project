@@ -75,4 +75,9 @@ export const quizService = {
     const { data } = await api.delete(`/quizzes/${quizId}/questions/${questionId}`);
     return data;
   },
+
+  async getUserPendingAssignments(userId) {
+    const { data } = await api.get(`/assignments/user/${userId}/pending`);
+    return data;
+  },
 };
