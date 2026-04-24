@@ -6,6 +6,7 @@ const sidebarItems = [
   { to: "/admin", icon: "dashboard", label: "Overview" },
   { to: "/admin/companies", icon: "business", label: "Companies" },
   { to: "/admin/users", icon: "group", label: "Users" },
+  { to: "/admin/super-users", icon: "manage_accounts", label: "Super Users" },
   { to: "/admin/quizzes", icon: "quiz", label: "Quizzes" },
 ];
 
