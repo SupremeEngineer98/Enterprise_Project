@@ -33,10 +33,6 @@ export default function ScoreboardPage() {
     if (user?.companyId) load();
   }, [user]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading scoreboard...</div>;
-  }
-
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="User Dashboard">
       <div className="flex items-center gap-4 mb-2">
@@ -53,14 +49,12 @@ export default function ScoreboardPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>
-      )}
+      {error && <div className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>}
 
-      {data.length === 0 ? (
-        <div className="rounded-2xl bg-white p-6 text-[#454652]">
-          No data available yet.
-        </div>
+      {loading ? (
+        <div className="rounded-2xl bg-white p-6 text-[#454652]">Loading...</div>
+      ) : data.length === 0 ? (
+        <div className="rounded-2xl bg-white p-6 text-[#454652]">No data available yet.</div>
       ) : (
         <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(26,35,126,0.08)] overflow-hidden">
 
@@ -69,18 +63,16 @@ export default function ScoreboardPage() {
             {data.slice(0, 3).map((u, i) => (
               <div
                 key={u.userId}
-                className={`flex flex-col items-center gap-2 ${i === 0 ? "order-2" : i === 1 ? "order-1" : "order-3"}`}
+                className={`flex flex-col items-center gap-2 ${
+                  i === 0 ? "order-2" : i === 1 ? "order-1" : "order-3"
+                }`}
               >
                 <span className="text-3xl">{medals[i]}</span>
-                <div
-                  className={`w-16 rounded-t-xl flex items-end justify-center pb-2 font-bold text-white text-sm ${
-                    i === 0
-                      ? "h-24 bg-[#6c5ce7]"
-                      : i === 1
-                      ? "h-16 bg-[#a29bfe]"
-                      : "h-12 bg-[#d3cffe]"
-                  }`}
-                >
+                <div className={`w-16 rounded-t-xl flex items-end justify-center pb-2 font-bold text-white text-sm ${
+                  i === 0 ? "h-24 bg-[#6c5ce7]" :
+                  i === 1 ? "h-16 bg-[#a29bfe]" :
+                  "h-12 bg-[#d3cffe]"
+                }`}>
                   {u.avgScore}%
                 </div>
                 <p className="text-xs font-semibold text-[#000666] text-center max-w-[70px] truncate">
@@ -97,42 +89,34 @@ export default function ScoreboardPage() {
               return (
                 <div
                   key={u.userId}
-                  className={`px-6 py-4 flex items-center gap-4 ${
+                  className={`px-6 py-4 flex items-center gap-4 transition-all ${
                     isMe ? "bg-[#f0ecff]" : "hover:bg-[#faf9ff]"
-                  } transition-all`}
+                  }`}
                 >
-                  <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      index === 0
-                        ? "bg-yellow-100 text-yellow-700"
-                        : index === 1
-                        ? "bg-gray-100 text-gray-600"
-                        : index === 2
-                        ? "bg-orange-100 text-orange-600"
-                        : "bg-[#f5f2ff] text-[#6c5ce7]"
-                    }`}
-                  >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    index === 0 ? "bg-yellow-100 text-yellow-700" :
+                    index === 1 ? "bg-gray-100 text-gray-600" :
+                    index === 2 ? "bg-orange-100 text-orange-600" :
+                    "bg-[#f5f2ff] text-[#6c5ce7]"
+                  }`}>
                     {index + 1}
                   </span>
 
                   <div className="flex-1">
                     <p className="font-semibold text-[#000666]">
-                      {u.name} {isMe && <span className="text-xs text-[#6c5ce7] font-bold">(you)</span>}
+                      {u.name}
+                      {isMe && <span className="text-xs text-[#6c5ce7] font-bold ml-1">(you)</span>}
                     </p>
                     <p className="text-xs text-[#454652]">
                       {u.totalCompleted} completed · {u.totalPending} pending
                     </p>
                   </div>
 
-                  <span
-                    className={`text-lg font-bold ${
-                      u.avgScore >= 80
-                        ? "text-green-600"
-                        : u.avgScore >= 50
-                        ? "text-yellow-600"
-                        : "text-red-500"
-                    }`}
-                  >
+                  <span className={`text-lg font-bold ${
+                    u.avgScore >= 80 ? "text-green-600" :
+                    u.avgScore >= 50 ? "text-yellow-600" :
+                    "text-red-500"
+                  }`}>
                     {u.avgScore}%
                   </span>
                 </div>

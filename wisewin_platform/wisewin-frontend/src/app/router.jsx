@@ -23,7 +23,7 @@ import AdminUsersPage from "../pages/AdminUsersPage";
 import AdminSuperUsersPage from "../pages/AdminSuperUsersPage";
 import AdminQuizzesPage from "../pages/AdminQuizzesPage";
 import SelfTrainingPage from "../pages/SelfTrainingPage";
-
+import SuperUserScoreboardPage from "../pages/SuperUserScoreboardPage";
 
 function ProtectedRoute({ allowedRoles }) {
   const { isAuthenticated, user, bootstrapping } = useAuth();
@@ -32,7 +32,7 @@ function ProtectedRoute({ allowedRoles }) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -98,6 +98,7 @@ export const router = createBrowserRouter([
       { path: "/super-user/create-quiz", element: <SuperUserCreateQuizPage /> },
       { path: "/super-user/quizzes/:quizId/questions", element: <ManageQuizQuestionsPage /> },
       { path: "/super-user/change-password", element: <ChangePasswordPage /> },
+      { path: "/super-user/scoreboard", element: <SuperUserScoreboardPage /> },
     ],
   },
   {
