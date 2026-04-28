@@ -53,7 +53,8 @@ export default function AttemptPage() {
     try {
       const result = await quizService.submitAttempt(attemptId, { timeTaken: elapsedTime });
       navigate(`/attempts/${attemptId}/review`, {
-        state: { result },
+        
+        state: { result, assignmentId: attempt.assignmentId },
       });
     } catch (error) {
       console.error(error);

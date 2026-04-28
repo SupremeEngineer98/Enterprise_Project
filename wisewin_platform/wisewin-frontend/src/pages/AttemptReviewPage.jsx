@@ -5,6 +5,7 @@ export default function AttemptReviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const result = location.state?.result;
+  const assignmentId = location.state?.assignmentId;
 
   if (!result) {
     return <div className="min-h-screen flex items-center justify-center">No data found.</div>;
@@ -20,9 +21,7 @@ export default function AttemptReviewPage() {
             <div
               key={index}
               className={`p-4 rounded-xl border-2 ${
-                answer.isCorrect
-                  ? "border-green-200 bg-green-50"
-                  : "border-red-200 bg-red-50"
+                answer.isCorrect ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
               }`}
             >
               <p className="font-semibold text-[#000666] mb-1">
@@ -36,7 +35,9 @@ export default function AttemptReviewPage() {
         </div>
 
         <button
-          onClick={() => navigate(`/attempts/${attemptId}/result`, { state: { result } })}
+          onClick={() => navigate(`/attempts/${attemptId}/result`, {
+            state: { result, assignmentId }
+          })}
           className="px-6 py-3 rounded-xl bg-[#000666] text-white font-semibold hover:opacity-90"
         >
           See Results
