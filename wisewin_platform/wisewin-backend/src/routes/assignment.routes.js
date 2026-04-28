@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/requireRole.js";
 import {
   getMyAssignments,
+  createAssignment,
   selfAssignQuiz,
   getCompanyCompletedAssignments,
   getUserPendingAssignments,
@@ -11,6 +12,13 @@ import {
 const router = Router();
 
 router.get("/me", authMiddleware, requireRole("User"), getMyAssignments);
+
+router.post(
+  "/quizzes/:quizId",
+  authMiddleware,
+  requireRole("Administrator", "Super user"),
+  createAssignment
+);
 
 router.post(
   "/quizzes/:quizId/self",

@@ -165,3 +165,64 @@ export function getCompanyCompletedAssignments(req, res, next) {
     next(err);
   }
 }
+
+// =========================
+// CREATE ASSIGNMENT (Admin/Super User)
+// =========================
+export function createAssignment(req, res, next) {
+  try {
+    const quizId = Number(req.params.quizId);
+    const { userId, dueDate } = req.body;
+
+    if (!userId) throw new ApiError(400, "userId is required");
+
+    const quiz = db.prepare(`
+      SELECT id, company_id AS companyId, source_type AS sourceType, is_active AS isActive
+      FROM quizzes WHERE id = ?
+    `).get(quizId);
+
+    if (!quiz) throw new ApiError(404, "Quiz not found");
+    if (!quiz.isActive) throw new ApiError(400, "Quiz is inactive");
+
+    const targetUser = db.prepare(`
+      SELECT u.id, u.company_id AS companyId, r.name AS role
+      FROM users u INNER JOIN roles r ON r.id = u.role_id
+      WHERE u.id = ?
+    `).get(Number(userId));
+
+    if (!targetUser) throw new ApiError(404, "User not found");
+    if (targetUser.role !== "User") throw new ApiError(400, "Assignments can only be created for users");
+
+    if (req.user.role === "Super user") {
+      if (req.user.companyId !== targetUser.companyId)
+        throw new ApiError(403, "You can only assign quizzes to users of your company");
+      if (quiz.sourceType === "COMPANY" && quiz.companyId !== req.user.companyId)
+        throw new ApiError(403, "You cannot assign another company's quiz");
+    }
+
+    if (quiz.sourceType === "COMPANY" && quiz.companyId !== targetUser.companyId)
+      throw new ApiError(400, "Company quiz can only be assigned inside the same company");
+
+    const existing = db.prepare(`
+      SELECT id FROM quiz_assignments
+      WHERE quiz_id = ? AND user_id = ? AND status IN ('ASSIGNED', 'IN_PROGRESS')
+      LIMIT 1
+    `).get(quizId, Number(userId));
+
+    if (existing) throw new ApiError(409, "An active assignment already exists for this quiz and user");
+
+    const result = db.prepare(`
+      INSERT INTO quiz_assignments (quiz_id, user_id, assigned_by, assigned_at, due_date, status, created_at, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, 'ASSIGNED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).run(quizId, Number(userId), req.user.sub, dueDate || null);
+
+    const assignment = db.prepare(`
+      SELECT id, quiz_id AS quizId, user_id AS userId, assigned_at AS assignedAt, due_date AS dueDate, status
+      FROM quiz_assignments WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    return res.status(201).json({ message: "Quiz assigned successfully", assignment });
+  } catch (error) {
+    next(error);
+  }
+}
