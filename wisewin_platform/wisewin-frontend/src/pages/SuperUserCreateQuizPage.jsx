@@ -35,6 +35,16 @@ export default function SuperUserCreateQuizPage() {
     setMessage("");
     setError("");
 
+    if (!form.description.trim()) {
+      setError("Please enter a description.");
+      return;
+    }
+
+    if (form.maxWrongAnswers === "" || form.maxWrongAnswers === null) {
+      setError("Please enter the maximum number of wrong answers allowed.");
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -92,6 +102,7 @@ export default function SuperUserCreateQuizPage() {
               value={form.description}
               onChange={handleChange}
               rows={4}
+              required
               className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]"
             />
           </div>
@@ -106,6 +117,7 @@ export default function SuperUserCreateQuizPage() {
               min="0"
               value={form.maxWrongAnswers}
               onChange={handleChange}
+              required
               className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]"
             />
           </div>
