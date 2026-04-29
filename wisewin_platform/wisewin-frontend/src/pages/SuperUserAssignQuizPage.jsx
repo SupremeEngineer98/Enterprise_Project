@@ -9,7 +9,7 @@ const sidebarItems = [
   { to: "/super-user/assign", icon: "assignment_add", label: "Assign Quiz" },
   { to: "/super-user/create-user", icon: "person_add", label: "Create User" },
   { to: "/super-user/create-quiz", icon: "quiz", label: "Create Quiz" },
-   { to: "/super-user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
+     { to: "/super-user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
 ];
 
 export default function SuperUserAssignQuizPage() {
@@ -114,6 +114,7 @@ export default function SuperUserAssignQuizPage() {
             <div>
               <label className="block text-sm font-medium text-[#454652] mb-2">Due Date</label>
               <input type="date" name="dueDate" value={form.dueDate} onChange={handleChange}
+                min={new Date().toISOString().split("T")[0]}
                 className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]" />
             </div>
 
