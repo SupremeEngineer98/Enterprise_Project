@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { quizService } from "../services/quizService";
+import { speakText } from "../utils/speech";
 
 export default function AttemptPage() {
   const { attemptId } = useParams();
@@ -93,19 +94,38 @@ export default function AttemptPage() {
 
         {!isFinished ? (
           <div>
-            <h2 className="text-xl font-semibold text-[#000666] mb-4">
-              {attempt.answeredCount + 1}. {attempt.nextQuestion.questionText}
-            </h2>
+            <div className="flex items-start gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => speakText(attempt.nextQuestion.questionText, "en-US")}
+                className="mt-1 shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 transition"
+                title="Read question"
+              >
+                🔊
+              </button>
+              <h2 className="text-xl font-semibold text-[#000666]">
+                {attempt.answeredCount + 1}. {attempt.nextQuestion.questionText}
+              </h2>
+            </div>
             <div className="space-y-3">
               {attempt.nextQuestion.options.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleAnswer(option.id)}
-                  disabled={submitting}
-                  className="w-full text-left p-4 rounded-xl bg-[#f5f2ff] hover:bg-[#e8e5ff] transition-all disabled:opacity-60"
-                >
-                  {option.optionText}
-                </button>
+                <div key={option.id} className="flex items-center gap-3 p-4 rounded-xl bg-[#f5f2ff] hover:bg-[#e8e5ff] transition-all">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); speakText(option.optionText, "en-US"); }}
+                    className="shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 transition"
+                    title="Read answer"
+                  >
+                    🔊
+                  </button>
+                  <button
+                    onClick={() => handleAnswer(option.id)}
+                    disabled={submitting}
+                    className="flex-1 text-left disabled:opacity-60"
+                  >
+                    {option.optionText}
+                  </button>
+                </div>
               ))}
             </div>
           </div>
