@@ -26,8 +26,8 @@ router.get("/", authMiddleware, requireRole("Administrator"), getAllUsers);
 // Update user (admin + super user)
 router.put("/:userId", authMiddleware, requireRole("Administrator", "Super user"), updateUser);
 
-// Delete user (admin only)
-router.delete("/:userId", authMiddleware, requireRole("Administrator"), deleteUser);
+// Delete user (admin + super user)
+router.delete("/:userId", authMiddleware, requireRole("Administrator", "Super user"), deleteUser);
 
 // Company users
 router.get("/company/:companyId", authMiddleware, requireRole("Administrator", "Super user"), getCompanyUsers);

@@ -135,7 +135,10 @@ export default function SuperUserDashboardPage() {
     if (!editForm.email?.trim()) { setEditError("Email is required."); return; }
     try {
       setEditLoading(true);
-      await userService.updateUser(editUser.id, editForm);
+      const payload = user.role === "Super user"
+        ? { isActive: editForm.isActive }
+        : editForm;
+      await userService.updateUser(editUser.id, payload);
       setEditUser(null);
       await reloadUsers();
     } catch (err) { setEditError(err.response?.data?.message || "Failed."); }
@@ -408,8 +411,10 @@ export default function SuperUserDashboardPage() {
         <Modal title="Edit User" onClose={() => setEditUser(null)}>
           <div className="space-y-1">
             <label className="text-sm font-semibold text-[#000666]">Email</label>
-            <input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-              className="w-full px-4 py-2 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E]" />
+            <input type="email" value={editForm.email}
+              onChange={(e) => user.role !== "Super user" && setEditForm((f) => ({ ...f, email: e.target.value }))}
+              readOnly={user.role === "Super user"}
+              className={`w-full px-4 py-2 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E] ${user.role === "Super user" ? "bg-[#f5f5f5] text-[#999] cursor-not-allowed" : ""}`} />
           </div>
           <div className="space-y-1">
             <label className="text-sm font-semibold text-[#000666]">Status</label>
