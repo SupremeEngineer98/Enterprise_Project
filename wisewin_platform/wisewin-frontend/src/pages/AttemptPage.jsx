@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+
 import { quizService } from "../services/quizService";
 import { speakText } from "../utils/speech";
 
 export default function AttemptPage() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [attempt, setAttempt] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,18 +52,20 @@ export default function AttemptPage() {
     }
   };
 
-  const handleSubmitAttempt = async () => {
-    try {
-      const result = await quizService.submitAttempt(attemptId, { timeTaken: elapsedTime });
-      navigate(`/attempts/${attemptId}/review`, {
-        
-        state: { result, assignmentId: attempt.assignmentId },
-      });
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || "Could not submit attempt");
-    }
-  };
+const handleSubmitAttempt = async () => {
+  try {
+    const result = await quizService.submitAttempt(attemptId, { timeTaken: elapsedTime });
+    navigate(`/attempts/${attemptId}/review`, {
+      state: { 
+        result, 
+        assignmentId: attempt.assignmentId ?? location.state?.assignmentId 
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    alert(error.response?.data?.message || "Could not submit attempt");
+  }
+};
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading attempt...</div>;
@@ -76,6 +80,14 @@ export default function AttemptPage() {
   return (
     <div className="min-h-screen bg-[#fcf8ff] p-8">
       <div className="max-w-3xl mx-auto bg-white rounded-3xl p-8 shadow-[0_20px_60px_rgba(26,35,126,0.08)]">
+        {/* back to dashboard btn!*/}
+  <button
+    type="button"
+    onClick={() => navigate("/user")}
+    className="mb-6 px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff] transition"
+  >
+    ← Back to Dashboard
+  </button>
         <h1 className="text-3xl font-bold text-[#000666] mb-4">Quiz Attempt</h1>
 
         <div className="flex items-center justify-between mb-8">
