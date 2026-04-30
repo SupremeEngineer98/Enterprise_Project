@@ -54,6 +54,11 @@ app.use(
  */
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 /**
  * @api {get} /api/health Health Check
  * @apiName HealthCheck
@@ -91,7 +96,7 @@ app.use("/api/auth", authRoutes);
  * @apiVersion 1.0.0
  * @apiDescription Centralized error handling middleware for the application.
  */
-app.use(errorHandler);
+
 
 /**
  * @api {use} /api/companies Company Routes
@@ -141,5 +146,7 @@ app.use("/api/attempts", attemptRoutes);
  * @apiDescription Handles question management for quizzes.
  */
 app.use("/api/questions", questionRoutes);
+
+app.use(errorHandler);
 
 export default app;

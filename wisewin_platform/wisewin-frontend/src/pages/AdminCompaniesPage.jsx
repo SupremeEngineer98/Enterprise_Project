@@ -103,6 +103,7 @@ export default function AdminCompaniesPage() {
     }
     try {
       setEditLoading(true);
+      console.log("editCompany.id:", editCompany.id, "editForm:", editForm);
       await companyService.updateCompany(editCompany.id, editForm);
       setEditCompany(null);
       // Invalidate cached details for this company
@@ -289,7 +290,7 @@ export default function AdminCompaniesPage() {
               className="w-full px-4 py-2 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E]"
             >
               <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
             </select>
           </FormField>
 
@@ -323,7 +324,7 @@ export default function AdminCompaniesPage() {
               className="w-full px-4 py-2 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E]"
             >
               <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
             </select>
           </FormField>
 

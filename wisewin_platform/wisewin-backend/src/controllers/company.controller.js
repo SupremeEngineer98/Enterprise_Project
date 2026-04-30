@@ -87,6 +87,7 @@ export function createCompany(req, res, next) {
 // PUT update company
 export function updateCompany(req, res, next) {
   try {
+    console.log("UPDATE COMPANY body:", req.body);
     const { id } = req.params;
     const { name, status } = req.body;
 
