@@ -52,8 +52,10 @@ export default function SelfTrainingPage() {
       const updated = await quizService.getMyAssignments();
       setAssignments(updated);
       // Auto-start the quiz
-      const attempt = await quizService.startAttempt(result.assignment.id);
-      navigate(`/attempts/${attempt.attemptId}`);
+const attempt = await quizService.startAttempt(result.assignment.id);
+navigate(`/attempts/${attempt.attemptId}`, {
+  state: { assignmentId: result.assignment.id }  
+});
     } catch (err) {
       setError(err.response?.data?.message || "Could not assign quiz.");
     } finally {
