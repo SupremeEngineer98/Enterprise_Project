@@ -177,7 +177,7 @@ export function deleteUser(req, res, next) {
     if (req.user.sub === userId) throw new ApiError(400, "You cannot delete yourself");
  
     db.transaction(() => {
-      // 1. Διαγραφή attempt answers
+     
       db.prepare(`
         DELETE FROM quiz_attempt_answers
         WHERE attempt_id IN (
@@ -187,7 +187,7 @@ export function deleteUser(req, res, next) {
         )
       `).run(userId);
  
-      // 2. Διαγραφή attempts
+     
       db.prepare(`
         DELETE FROM quiz_attempts
         WHERE assignment_id IN (
@@ -195,10 +195,10 @@ export function deleteUser(req, res, next) {
         )
       `).run(userId);
  
-      // 3. Unassign — διαγραφή assignments (ΟΧΙ τα quiz)
+     
       db.prepare(`DELETE FROM quiz_assignments WHERE user_id = ?`).run(userId);
  
-      // 4. Διαγραφή user (created_by στα quiz → SET NULL αυτόματα λόγω FK)
+   
       db.prepare(`DELETE FROM users WHERE id = ?`).run(userId);
     })();
  
