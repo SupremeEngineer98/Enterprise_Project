@@ -171,11 +171,11 @@ export function updateUser(req, res, next) {
 export function deleteUser(req, res, next) {
   try {
     const userId = Number(req.params.userId);
-
+ 
     const existing = db.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
     if (!existing) throw new ApiError(404, "User not found");
     if (req.user.sub === userId) throw new ApiError(400, "You cannot delete yourself");
-
+ 
     db.transaction(() => {
       // 1. Διαγραφή attempt answers
       db.prepare(`
@@ -186,7 +186,7 @@ export function deleteUser(req, res, next) {
           WHERE qa.user_id = ?
         )
       `).run(userId);
-
+ 
       // 2. Διαγραφή attempts
       db.prepare(`
         DELETE FROM quiz_attempts
@@ -194,90 +194,20 @@ export function deleteUser(req, res, next) {
           SELECT id FROM quiz_assignments WHERE user_id = ?
         )
       `).run(userId);
-
+ 
       // 3. Unassign — διαγραφή assignments (ΟΧΙ τα quiz)
       db.prepare(`DELETE FROM quiz_assignments WHERE user_id = ?`).run(userId);
-
+ 
       // 4. Διαγραφή user (created_by στα quiz → SET NULL αυτόματα λόγω FK)
       db.prepare(`DELETE FROM users WHERE id = ?`).run(userId);
     })();
-
+ 
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     next(error);
   }
 }
-
-// =========================
-// DELETE COMPANY — διαγραφή όλων
-// =========================
-export function deleteCompany(req, res, next) {
-  try {
-    const { id } = req.params;
-
-    const existing = db.prepare(`SELECT id FROM companies WHERE id = ?`).get(id);
-    if (!existing) throw new ApiError(404, "Company not found");
-
-    db.transaction(() => {
-      // 1. Attempt answers
-      db.prepare(`
-        DELETE FROM quiz_attempt_answers
-        WHERE attempt_id IN (
-          SELECT at.id FROM quiz_attempts at
-          INNER JOIN quiz_assignments qa ON qa.id = at.assignment_id
-          INNER JOIN users u ON u.id = qa.user_id
-          WHERE u.company_id = ?
-        )
-      `).run(id);
-
-      // 2. Attempts
-      db.prepare(`
-        DELETE FROM quiz_attempts
-        WHERE assignment_id IN (
-          SELECT qa.id FROM quiz_assignments qa
-          INNER JOIN users u ON u.id = qa.user_id
-          WHERE u.company_id = ?
-        )
-      `).run(id);
-
-      // 3. Assignments
-      db.prepare(`
-        DELETE FROM quiz_assignments
-        WHERE user_id IN (SELECT id FROM users WHERE company_id = ?)
-      `).run(id);
-
-      // 4. Quiz questions options
-      db.prepare(`
-        DELETE FROM question_options
-        WHERE question_id IN (
-          SELECT q.id FROM questions q
-          INNER JOIN quizzes qz ON qz.id = q.quiz_id
-          WHERE qz.company_id = ?
-        )
-      `).run(id);
-
-      // 5. Quiz questions
-      db.prepare(`
-        DELETE FROM questions
-        WHERE quiz_id IN (SELECT id FROM quizzes WHERE company_id = ?)
-      `).run(id);
-
-      // 6. Quizzes
-      db.prepare(`DELETE FROM quizzes WHERE company_id = ?`).run(id);
-
-      // 7. Users
-      db.prepare(`DELETE FROM users WHERE company_id = ?`).run(id);
-
-      // 8. Company
-      db.prepare(`DELETE FROM companies WHERE id = ?`).run(id);
-    })();
-
-    return res.status(200).json({ message: "Company deleted successfully" });
-  } catch (error) {
-    next(error);
-  }
-}
-
+ 
 export function getCompanyUsers(req, res, next) {
   try {
     const companyId = Number(req.params.companyId);
