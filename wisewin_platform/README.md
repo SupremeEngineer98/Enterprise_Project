@@ -97,6 +97,19 @@ alice@techflow.com
 bob@techflow.com
 ```
 
+## Running Tests
+
+The backend includes automated tests for core functionality:
+
+- Authentication (login, current user)
+- Quiz attempts (start attempt, answer submission, completion, history)
+
+### Run tests
+
+```bash
+npm test
+```
+
 ## Core Implemented Features
 - JWT authentication
 - role-based routing and authorization
