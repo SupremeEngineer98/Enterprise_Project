@@ -14,8 +14,16 @@ import ManageQuizQuestionsPage from "../pages/ManageQuizQuestionsPage";
 import SuperUserCreateUserPage from "../pages/SuperUserCreateUserPage";
 import SuperUserCreateQuizPage from "../pages/SuperUserCreateQuizPage";
 import ChangePasswordPage from "../pages/ChangePasswordPage";
+import AttemptReviewPage from "../pages/AttemptReviewPage";
 import { useAuth } from "../context/AuthContext";
 import { ROLES } from "../utils/constants";
+import ScoreboardPage from "../pages/ScoreboardPage";
+import AdminCompaniesPage from "../pages/AdminCompaniesPage";
+import AdminUsersPage from "../pages/AdminUsersPage";
+import AdminSuperUsersPage from "../pages/AdminSuperUsersPage";
+import AdminQuizzesPage from "../pages/AdminQuizzesPage";
+import SelfTrainingPage from "../pages/SelfTrainingPage";
+import SuperUserScoreboardPage from "../pages/SuperUserScoreboardPage";
 
 function ProtectedRoute({ allowedRoles }) {
   const { isAuthenticated, user, bootstrapping } = useAuth();
@@ -24,7 +32,7 @@ function ProtectedRoute({ allowedRoles }) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -75,6 +83,10 @@ export const router = createBrowserRouter([
       { path: "/admin/create-quiz", element: <AdminCreateQuizPage /> },
       { path: "/admin/quizzes/:quizId/questions", element: <ManageQuizQuestionsPage /> },
       { path: "/admin/change-password", element: <ChangePasswordPage /> },
+      { path: "/admin/companies", element: <AdminCompaniesPage /> },
+      { path: "/admin/users", element: <AdminUsersPage /> },
+      { path: "/admin/super-users", element: <AdminSuperUsersPage /> },
+      { path: "/admin/quizzes", element: <AdminQuizzesPage /> },
     ],
   },
   {
@@ -86,6 +98,7 @@ export const router = createBrowserRouter([
       { path: "/super-user/create-quiz", element: <SuperUserCreateQuizPage /> },
       { path: "/super-user/quizzes/:quizId/questions", element: <ManageQuizQuestionsPage /> },
       { path: "/super-user/change-password", element: <ChangePasswordPage /> },
+      { path: "/super-user/scoreboard", element: <SuperUserScoreboardPage /> },
     ],
   },
   {
@@ -96,6 +109,9 @@ export const router = createBrowserRouter([
       { path: "/attempts/:attemptId/result", element: <AttemptResultPage /> },
       { path: "/assignments/:assignmentId/history", element: <AssignmentHistoryPage /> },
       { path: "/user/change-password", element: <ChangePasswordPage /> },
+      { path: "/attempts/:attemptId/review", element: <AttemptReviewPage /> },
+      { path: "/user/scoreboard", element: <ScoreboardPage /> },
+      { path: "/user/self-training", element: <SelfTrainingPage /> },
     ],
   },
 ]);

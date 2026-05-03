@@ -39,7 +39,7 @@ export function startAttempt(req, res, next) {
       FROM quiz_attempts
       WHERE assignment_id = ?
     `);
-      
+
     const { totalAttempts } = countStmt.get(assignmentId);
     const nextAttemptNumber = totalAttempts + 1;
 
@@ -168,32 +168,32 @@ export function getAttemptById(req, res, next) {
           FROM quiz_attempt_answers
           WHERE attempt_id = ?
         )
-      ORDER BY q.display_order ASC
+      ORDER BY RANDOM()
       LIMIT 1
     `);
 
     const nextQuestion = nextQuestionStmt.get(attempt.quizId, attemptId);
 
     let fullNextQuestion = null;
-    
+
     if (nextQuestion) {
       const optionsStmt = db.prepare(`
         SELECT
-        id,
-        option_text AS optionText
+          id,
+          option_text AS optionText
         FROM question_options
         WHERE question_id = ?
         ORDER BY display_order ASC
-        `);
-        
-        const options = optionsStmt.all(nextQuestion.id);
-        const shuffledOptions = shuffleArray(options);
-        
-        fullNextQuestion = {
-          ...nextQuestion,
-          options: shuffledOptions,
-        };
-      }
+      `);
+
+      const options = optionsStmt.all(nextQuestion.id);
+      const shuffledOptions = shuffleArray(options);
+
+      fullNextQuestion = {
+        ...nextQuestion,
+        options: shuffledOptions,
+      };
+    }
 
     return res.status(200).json({
       attemptId: attempt.attemptId,
@@ -213,7 +213,6 @@ export function submitAnswer(req, res, next) {
   try {
     const attemptId = Number(req.params.attemptId);
     const { questionId, selectedOptionId } = req.body;
-    
 
     if (!questionId || !selectedOptionId) {
       throw new ApiError(400, "questionId and selectedOptionId are required");
@@ -308,10 +307,8 @@ export function submitAnswer(req, res, next) {
 
 export function submitAttempt(req, res, next) {
   try {
-    
     const attemptId = Number(req.params.attemptId);
-
-    const timeTaken = Math.max(0, Number(req.body?.timeTaken || 0)); //adding the time parameter to send it to the DB!
+    const timeTaken = Math.max(0, Number(req.body?.timeTaken || 0));
 
     const attemptStmt = db.prepare(`
       SELECT
@@ -330,17 +327,9 @@ export function submitAttempt(req, res, next) {
 
     const attempt = attemptStmt.get(attemptId);
 
-    if (!attempt) {
-      throw new ApiError(404, "Attempt not found");
-    }
-
-    if (attempt.userId !== req.user.sub) {
-      throw new ApiError(403, "Forbidden");
-    }
-
-    if (attempt.status !== "IN_PROGRESS") {
-      throw new ApiError(400, "Attempt is not active");
-    }
+    if (!attempt) throw new ApiError(404, "Attempt not found");
+    if (attempt.userId !== req.user.sub) throw new ApiError(403, "Forbidden");
+    if (attempt.status !== "IN_PROGRESS") throw new ApiError(400, "Attempt is not active");
 
     const quizRulesStmt = db.prepare(`
       SELECT
@@ -352,7 +341,6 @@ export function submitAttempt(req, res, next) {
     `);
 
     const quizRules = quizRulesStmt.get(attempt.quizId);
-
     const totalQuestions = quizRules.totalQuestions;
     const maxWrongAnswers = quizRules.maxWrongAnswers;
 
@@ -368,29 +356,36 @@ export function submitAttempt(req, res, next) {
       SET
         status = 'COMPLETED',
         passed = ?,
+        time_taken_seconds = ?,
         completed_at = CURRENT_TIMESTAMP,
-         time_taken_seconds = ?,
         last_activity_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(passed, timeTaken ?? 0, attemptId);
+    `).run(passed, timeTaken, attemptId);
 
     if (passed) {
       db.prepare(`
         UPDATE quiz_assignments
-        SET
-          status = 'COMPLETED',
-          updated_at = CURRENT_TIMESTAMP
+        SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(attempt.assignmentId);
     } else {
       db.prepare(`
         UPDATE quiz_assignments
-        SET
-          status = 'ASSIGNED',
-          updated_at = CURRENT_TIMESTAMP
+        SET status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(attempt.assignmentId);
     }
+
+    const answers = db.prepare(`
+      SELECT
+        q.question_text AS questionText,
+        qaa.is_correct AS isCorrect,
+        qo.option_text AS selectedOption
+      FROM quiz_attempt_answers qaa
+      INNER JOIN questions q ON q.id = qaa.question_id
+      INNER JOIN question_options qo ON qo.id = qaa.selected_option_id
+      WHERE qaa.attempt_id = ?
+    `).all(attemptId);
 
     return res.status(200).json({
       status: "COMPLETED",
@@ -401,15 +396,15 @@ export function submitAttempt(req, res, next) {
       maxWrongAnswers,
       passed: Boolean(passed),
       completedAt: new Date().toISOString(),
+      timeTaken,
+      answers,
       message: passed
         ? "Quiz passed successfully."
         : "Quiz failed. Please try again.",
     });
-    
   } catch (error) {
     next(error);
   }
- 
 }
 
 export function getAssignmentAttempts(req, res, next) {
@@ -443,25 +438,55 @@ export function getAssignmentAttempts(req, res, next) {
 
     const { totalQuestions } = totalQuestionsStmt.get(assignment.quizId);
 
-    const attemptsStmt = db.prepare(`
+    const rows = db.prepare(`
       SELECT
-        id AS attemptId,
-        attempt_number AS attemptNumber,
-        status,
-        current_score AS score,
-        passed,
-        started_at AS startedAt,
-        completed_at AS completedAt
-      FROM quiz_attempts
-      WHERE assignment_id = ?
-      ORDER BY attempt_number ASC
-    `);
+        qa.id AS attemptId,
+        qa.attempt_number AS attemptNumber,
+        qa.status,
+        qa.current_score AS score,
+        qa.passed,
+        qa.started_at AS startedAt,
+        qa.completed_at AS completedAt,
+        q.question_text AS questionText,
+        qaa.is_correct AS isCorrect,
+        qo.option_text AS selectedOption,
+        qa.time_taken_seconds AS timeTaken
+      FROM quiz_attempts qa
+      LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id
+      LEFT JOIN questions q ON q.id = qaa.question_id
+      LEFT JOIN question_options qo ON qo.id = qaa.selected_option_id
+      WHERE qa.assignment_id = ?
+      ORDER BY qa.attempt_number ASC
+    `).all(assignmentId);
 
-    const attempts = attemptsStmt.all(assignmentId).map((attempt) => ({
-      ...attempt,
-      totalQuestions,
-      passed: attempt.passed === null ? null : Boolean(attempt.passed),
-    }));
+    const grouped = {};
+
+    for (const row of rows) {
+      if (!grouped[row.attemptId]) {
+        grouped[row.attemptId] = {
+          attemptId: row.attemptId,
+          attemptNumber: row.attemptNumber,
+          status: row.status,
+          score: row.score,
+          passed: row.passed === null ? null : Boolean(row.passed),
+          startedAt: row.startedAt,
+          completedAt: row.completedAt,
+          totalQuestions,
+          timeTaken: row.timeTaken,
+          answers: [],
+        };
+      }
+
+      if (row.questionText) {
+        grouped[row.attemptId].answers.push({
+          questionText: row.questionText,
+          isCorrect: Boolean(row.isCorrect),
+          selectedOption: row.selectedOption,
+        });
+      }
+    }
+
+    const attempts = Object.values(grouped);
 
     return res.status(200).json(attempts);
   } catch (error) {

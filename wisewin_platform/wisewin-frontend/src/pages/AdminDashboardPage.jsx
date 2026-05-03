@@ -5,6 +5,7 @@ import SectionCard from "../components/dashboard/SectionCard";
 import { companyService } from "../services/companyService";
 import { userService } from "../services/userService";
 import { quizService } from "../services/quizService";
+import { useNavigate } from "react-router-dom";
 
 const sidebarItems = [
   { to: "/admin", icon: "dashboard", label: "Overview" },
@@ -13,6 +14,7 @@ const sidebarItems = [
 ];
 
 export default function AdminDashboardPage() {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [users, setUsers] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
@@ -55,10 +57,18 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/companies")}>
         <StatCard title="Companies" value={companies.length} icon="business" />
+        </div>
+        <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/super-users")}>
         <StatCard title="Super Users" value={superUsers.length} icon="manage_accounts" />
+        </div>
+        <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/users")}>
         <StatCard title="Users" value={normalUsers.length} icon="group" />
+        </div>
+         <div className="cursor-pointer hover:scale-[1.02] hover:shadow-md transition" onClick={() => navigate("/admin/quizzes")}>
         <StatCard title="Quizzes" value={quizzes.length} icon="quiz" />
+        </div>
       </div>
 
       <SectionCard title="Client Intelligence">

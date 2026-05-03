@@ -9,12 +9,16 @@ export const userService = {
     const { data } = await api.get(`/users/company/${companyId}`);
     return data;
   },
-  /* async getUserAttempts(userId) {
-    const { data } = await api.get(`/users/${userId}/attempts`);
-    return data;
-  }, */
   async createUser(payload) {
     const { data } = await api.post("/users", payload);
+    return data;
+  },
+  async updateUser(userId, payload) {
+    const { data } = await api.put(`/users/${userId}`, payload);
+    return data;
+  },
+  async deleteUser(userId) {
+    const { data } = await api.delete(`/users/${userId}`);
     return data;
   },
   async changePassword(userId, payload) {
@@ -23,6 +27,10 @@ export const userService = {
   },
   async getCompanyAssignmentStats(companyId) {
     const { data } = await api.get(`/users/company/${companyId}/stats`);
+    return data;
+  },
+  async getUserComparison(companyId) {
+    const { data } = await api.get(`/users/company/${companyId}/comparison`);
     return data;
   },
 };
