@@ -1,495 +1,156 @@
-import { db } from "../database/db.js";
-import { ApiError } from "../utils/apiError.js";
-import { shuffleArray } from "../utils/shuffle.js";
-
-export function startAttempt(req, res, next) {
-  try {
-    const assignmentId = Number(req.params.assignmentId);
-
-    const assignmentStmt = db.prepare(`
-      SELECT
-        qa.id,
-        qa.user_id AS userId,
-        qa.status,
-        qa.due_date AS dueDate
-      FROM quiz_assignments qa
-      WHERE qa.id = ?
-    `);
-
-    const assignment = assignmentStmt.get(assignmentId);
-
-    if (!assignment) {
-      throw new ApiError(404, "Assignment not found");
-    }
-
-    if (assignment.userId !== req.user.sub) {
-      throw new ApiError(403, "Forbidden");
-    }
-
-    if (assignment.status === "COMPLETED") {
-      throw new ApiError(400, "Assignment already completed");
-    }
-
-    if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
-      throw new ApiError(400, "Assignment is overdue");
-    }
-
-    const countStmt = db.prepare(`
-      SELECT COUNT(*) AS totalAttempts
-      FROM quiz_attempts
-      WHERE assignment_id = ?
-    `);
-
-    const { totalAttempts } = countStmt.get(assignmentId);
-    const nextAttemptNumber = totalAttempts + 1;
-
-    const existingStmt = db.prepare(`
-      SELECT
-        id,
-        assignment_id AS assignmentId,
-        status,
-        started_at AS startedAt
-      FROM quiz_attempts
-      WHERE assignment_id = ?
-        AND status = 'IN_PROGRESS'
-      LIMIT 1
-    `);
-
-    const existingAttempt = existingStmt.get(assignmentId);
-
-    if (existingAttempt) {
-      return res.status(200).json({
-        attemptId: existingAttempt.id,
-        assignmentId: existingAttempt.assignmentId,
-        status: existingAttempt.status,
-        startedAt: existingAttempt.startedAt,
-      });
-    }
-
-    const insertStmt = db.prepare(`
-      INSERT INTO quiz_attempts (
-        assignment_id,
-        attempt_number,
-        status,
-        current_score,
-        answered_count,
-        passed,
-        started_at,
-        last_activity_at
-      )
-      VALUES (?, ?, 'IN_PROGRESS', 0, 0, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `);
-
-    const result = insertStmt.run(assignmentId, nextAttemptNumber);
-
-    const updateAssignmentStmt = db.prepare(`
-      UPDATE quiz_assignments
-      SET status = 'IN_PROGRESS',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    updateAssignmentStmt.run(assignmentId);
-
-    const createdStmt = db.prepare(`
-      SELECT
-        id AS attemptId,
-        assignment_id AS assignmentId,
-        attempt_number AS attemptNumber,
-        status,
-        started_at AS startedAt
-      FROM quiz_attempts
-      WHERE id = ?
-    `);
-
-    const attempt = createdStmt.get(result.lastInsertRowid);
-
-    return res.status(200).json(attempt);
-  } catch (error) {
-    next(error);
-  }
-}
-
-export function getAttemptById(req, res, next) {
-  try {
-    const attemptId = Number(req.params.attemptId);
-
-    const attemptStmt = db.prepare(`
-      SELECT
-        qa2.id AS attemptId,
-        qa2.assignment_id AS assignmentId,
-        qa2.status,
-        qa2.current_score AS currentScore,
-        qa2.answered_count AS answeredCount,
-        q.id AS quizId
-      FROM quiz_attempts qa2
-      INNER JOIN quiz_assignments qa ON qa.id = qa2.assignment_id
-      INNER JOIN quizzes q ON q.id = qa.quiz_id
-      WHERE qa2.id = ?
-    `);
-
-    const attempt = attemptStmt.get(attemptId);
-
-    if (!attempt) {
-      throw new ApiError(404, "Attempt not found");
-    }
-
-    const ownershipStmt = db.prepare(`
-      SELECT
-        qa.user_id AS userId
-      FROM quiz_attempts a
-      INNER JOIN quiz_assignments qa ON qa.id = a.assignment_id
-      WHERE a.id = ?
-    `);
-
-    const ownership = ownershipStmt.get(attemptId);
-
-    if (req.user.role === "User" && ownership.userId !== req.user.sub) {
-      throw new ApiError(403, "Forbidden");
-    }
-
-    const totalQuestionsStmt = db.prepare(`
-      SELECT COUNT(*) AS totalQuestions
-      FROM questions
-      WHERE quiz_id = ?
-    `);
-
-    const { totalQuestions } = totalQuestionsStmt.get(attempt.quizId);
-
-    const nextQuestionStmt = db.prepare(`
-      SELECT
-        q.id,
-        q.question_text AS questionText,
-        q.display_order AS displayOrder
-      FROM questions q
-      WHERE q.quiz_id = ?
-        AND q.id NOT IN (
-          SELECT question_id
-          FROM quiz_attempt_answers
-          WHERE attempt_id = ?
-        )
-      ORDER BY RANDOM()
-      LIMIT 1
-    `);
-
-    const nextQuestion = nextQuestionStmt.get(attempt.quizId, attemptId);
-
-    let fullNextQuestion = null;
-
-    if (nextQuestion) {
-      const optionsStmt = db.prepare(`
-        SELECT
-          id,
-          option_text AS optionText
-        FROM question_options
-        WHERE question_id = ?
-        ORDER BY display_order ASC
-      `);
-
-      const options = optionsStmt.all(nextQuestion.id);
-      const shuffledOptions = shuffleArray(options);
-
-      fullNextQuestion = {
-        ...nextQuestion,
-        options: shuffledOptions,
-      };
-    }
-
-    return res.status(200).json({
-      attemptId: attempt.attemptId,
-      assignmentId: attempt.assignmentId,
-      status: attempt.status,
-      currentScore: attempt.currentScore,
-      answeredCount: attempt.answeredCount,
-      totalQuestions,
-      nextQuestion: fullNextQuestion,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export function submitAnswer(req, res, next) {
-  try {
-    const attemptId = Number(req.params.attemptId);
-    const { questionId, selectedOptionId } = req.body;
-
-    if (!questionId || !selectedOptionId) {
-      throw new ApiError(400, "questionId and selectedOptionId are required");
-    }
-
-    const attemptStmt = db.prepare(`
-      SELECT
-        a.id,
-        a.status,
-        qa.user_id AS userId
-      FROM quiz_attempts a
-      INNER JOIN quiz_assignments qa ON qa.id = a.assignment_id
-      WHERE a.id = ?
-    `);
-
-    const attempt = attemptStmt.get(attemptId);
-
-    if (!attempt) {
-      throw new ApiError(404, "Attempt not found");
-    }
-
-    if (attempt.userId !== req.user.sub) {
-      throw new ApiError(403, "Forbidden");
-    }
-
-    if (attempt.status !== "IN_PROGRESS") {
-      throw new ApiError(400, "Attempt is not active");
-    }
-
-    const existingStmt = db.prepare(`
-      SELECT id
-      FROM quiz_attempt_answers
-      WHERE attempt_id = ? AND question_id = ?
-    `);
-
-    if (existingStmt.get(attemptId, questionId)) {
-      throw new ApiError(409, "Question already answered");
-    }
-
-    const optionStmt = db.prepare(`
-      SELECT is_correct AS isCorrect
-      FROM question_options
-      WHERE id = ? AND question_id = ?
-    `);
-
-    const option = optionStmt.get(selectedOptionId, questionId);
-
-    if (!option) {
-      throw new ApiError(400, "Invalid option");
-    }
-
-    const isCorrect = option.isCorrect ? 1 : 0;
-
-    db.prepare(`
-      INSERT INTO quiz_attempt_answers (
-        attempt_id,
-        question_id,
-        selected_option_id,
-        is_correct,
-        answered_at
-      )
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(attemptId, questionId, selectedOptionId, isCorrect);
-
-    db.prepare(`
-      UPDATE quiz_attempts
-      SET
-        current_score = current_score + ?,
-        answered_count = answered_count + 1,
-        last_activity_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(isCorrect, attemptId);
-
-    const updatedAttempt = db.prepare(`
-      SELECT
-        id AS attemptId,
-        current_score AS currentScore,
-        answered_count AS answeredCount
-      FROM quiz_attempts
-      WHERE id = ?
-    `).get(attemptId);
-
-    return res.status(200).json({
-      isCorrect: Boolean(isCorrect),
-      message: isCorrect ? "Correct! Well done." : "Incorrect. Keep going.",
-      ...updatedAttempt,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export function submitAttempt(req, res, next) {
-  try {
-    const attemptId = Number(req.params.attemptId);
-    const timeTaken = Math.max(0, Number(req.body?.timeTaken || 0));
-
-    const attemptStmt = db.prepare(`
-      SELECT
-        a.id,
-        a.assignment_id AS assignmentId,
-        a.status,
-        a.current_score AS currentScore,
-        a.answered_count AS answeredCount,
-        a.attempt_number AS attemptNumber,
-        qa.user_id AS userId,
-        qa.quiz_id AS quizId
-      FROM quiz_attempts a
-      INNER JOIN quiz_assignments qa ON qa.id = a.assignment_id
-      WHERE a.id = ?
-    `);
-
-    const attempt = attemptStmt.get(attemptId);
-
-    if (!attempt) throw new ApiError(404, "Attempt not found");
-    if (attempt.userId !== req.user.sub) throw new ApiError(403, "Forbidden");
-    if (attempt.status !== "IN_PROGRESS") throw new ApiError(400, "Attempt is not active");
-
-    const quizRulesStmt = db.prepare(`
-      SELECT
-        q.max_wrong_answers AS maxWrongAnswers,
-        COUNT(ques.id) AS totalQuestions
-      FROM quizzes q
-      LEFT JOIN questions ques ON ques.quiz_id = q.id
-      WHERE q.id = ?
-    `);
-
-    const quizRules = quizRulesStmt.get(attempt.quizId);
-    const totalQuestions = quizRules.totalQuestions;
-    const maxWrongAnswers = quizRules.maxWrongAnswers;
-
-    if (attempt.answeredCount < totalQuestions) {
-      throw new ApiError(400, "You must answer all questions before submitting");
-    }
-
-    const wrongAnswers = totalQuestions - attempt.currentScore;
-    const passed = wrongAnswers <= maxWrongAnswers ? 1 : 0;
-
-    db.prepare(`
-      UPDATE quiz_attempts
-      SET
-        status = 'COMPLETED',
-        passed = ?,
-        time_taken_seconds = ?,
-        completed_at = CURRENT_TIMESTAMP,
-        last_activity_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(passed, timeTaken, attemptId);
-
-    if (passed) {
-      db.prepare(`
-        UPDATE quiz_assignments
-        SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(attempt.assignmentId);
-    } else {
-      db.prepare(`
-        UPDATE quiz_assignments
-        SET status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(attempt.assignmentId);
-    }
-
-    const answers = db.prepare(`
-      SELECT
-        q.question_text AS questionText,
-        qaa.is_correct AS isCorrect,
-        qo.option_text AS selectedOption
-      FROM quiz_attempt_answers qaa
-      INNER JOIN questions q ON q.id = qaa.question_id
-      INNER JOIN question_options qo ON qo.id = qaa.selected_option_id
-      WHERE qaa.attempt_id = ?
-    `).all(attemptId);
-
-    return res.status(200).json({
-      status: "COMPLETED",
-      attemptNumber: attempt.attemptNumber,
-      finalScore: attempt.currentScore,
-      totalQuestions,
-      wrongAnswers,
-      maxWrongAnswers,
-      passed: Boolean(passed),
-      completedAt: new Date().toISOString(),
-      timeTaken,
-      answers,
-      message: passed
-        ? "Quiz passed successfully."
-        : "Quiz failed. Please try again.",
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export function getAssignmentAttempts(req, res, next) {
-  try {
-    const assignmentId = Number(req.params.assignmentId);
-
-    const assignmentStmt = db.prepare(`
-      SELECT
-        qa.id,
-        qa.user_id AS userId,
-        qa.quiz_id AS quizId
-      FROM quiz_assignments qa
-      WHERE qa.id = ?
-    `);
-
-    const assignment = assignmentStmt.get(assignmentId);
-
-    if (!assignment) {
-      throw new ApiError(404, "Assignment not found");
-    }
-
-    if (req.user.role === "User" && assignment.userId !== req.user.sub) {
-      throw new ApiError(403, "Forbidden");
-    }
-
-    const totalQuestionsStmt = db.prepare(`
-      SELECT COUNT(*) AS totalQuestions
-      FROM questions
-      WHERE quiz_id = ?
-    `);
-
-    const { totalQuestions } = totalQuestionsStmt.get(assignment.quizId);
-
-    const rows = db.prepare(`
-      SELECT
-        qa.id AS attemptId,
-        qa.attempt_number AS attemptNumber,
-        qa.status,
-        qa.current_score AS score,
-        qa.passed,
-        qa.started_at AS startedAt,
-        qa.completed_at AS completedAt,
-        q.question_text AS questionText,
-        qaa.is_correct AS isCorrect,
-        qo.option_text AS selectedOption,
-        qa.time_taken_seconds AS timeTaken
-      FROM quiz_attempts qa
-      LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id
-      LEFT JOIN questions q ON q.id = qaa.question_id
-      LEFT JOIN question_options qo ON qo.id = qaa.selected_option_id
-      WHERE qa.assignment_id = ?
-      ORDER BY qa.attempt_number ASC
-    `).all(assignmentId);
-
-    const grouped = {};
-
-    for (const row of rows) {
-      if (!grouped[row.attemptId]) {
-        grouped[row.attemptId] = {
-          attemptId: row.attemptId,
-          attemptNumber: row.attemptNumber,
-          status: row.status,
-          score: row.score,
-          passed: row.passed === null ? null : Boolean(row.passed),
-          startedAt: row.startedAt,
-          completedAt: row.completedAt,
-          totalQuestions,
-          timeTaken: row.timeTaken,
-          answers: [],
-        };
-      }
-
-      if (row.questionText) {
-        grouped[row.attemptId].answers.push({
-          questionText: row.questionText,
-          isCorrect: Boolean(row.isCorrect),
-          selectedOption: row.selectedOption,
-        });
-      }
-    }
-
-    const attempts = Object.values(grouped);
-
-    return res.status(200).json(attempts);
-  } catch (error) {
-    next(error);
-  }
-}
+/**
+ * @api {config} /app Application Configuration
+ * @apiName AppSetup
+ * @apiGroup App
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription
+ * Main Express application setup for the WiseWin backend.
+ * Configures middleware (CORS, JSON parsing),
+ * registers all route modules, and applies global error handling.
+ */
+import express from "express";
+import cors from "cors";
+import authRoutes from "./routes/auth.routes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import companyRoutes from "./routes/company.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import quizRoutes from "./routes/quiz.routes.js";
+import assignmentRoutes from "./routes/assignment.routes.js";
+import attemptRoutes from "./routes/attempt.routes.js";
+import questionRoutes from "./routes/question.routes.js";
+
+const app = express();
+/**
+ * @api {middleware} /cors CORS Configuration
+ * @apiName CORSSetup
+ * @apiGroup Middleware
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription
+ * Allows cross-origin requests only from the frontend
+ * development server at http://localhost:5173.
+ *
+ * @apiParam {String} origin Allowed origin: `http://localhost:5173`
+ * @apiParam {Boolean} credentials Credentials not included (`false`).
+ */
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: false,
+  })
+);
+
+/**
+ * @api {middleware} /json JSON Body Parser
+ * @apiName JSONParser
+ * @apiGroup Middleware
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription
+ * Parses incoming requests with JSON payloads,
+ * making data available on `req.body`.
+ */
+app.use(express.json());
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+/**
+ * @api {get} /api/health Health Check
+ * @apiName HealthCheck
+ * @apiGroup Server
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription
+ * Simple endpoint to verify the backend server is running.
+ *
+ * @apiSuccess {String} message Confirmation that the backend is running.
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *     {
+ *       "message": "WiseWin backend is running"
+ *     }
+ */
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ message: "WiseWin backend is running" });
+});
+
+/**
+ * @api {use} /api/auth Authentication Routes
+ * @apiName AuthRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles login, registration, and token management.
+ */
+app.use("/api/auth", authRoutes);
+
+
+/**
+ * @api {middleware} /errorHandler Global Error Handler
+ * @apiName ErrorHandler
+ * @apiGroup Middleware
+ * @apiVersion 1.0.0
+ * @apiDescription Centralized error handling middleware for the application.
+ */
+
+
+/**
+ * @api {use} /api/companies Company Routes
+ * @apiName CompanyRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles company management operations.
+ */
+app.use("/api/companies", companyRoutes);
+/**
+ * @api {use} /api/users User Routes
+ * @apiName UserRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles user management operations.
+ */
+app.use("/api/users", userRoutes);
+/**
+ * @api {use} /api/quizzes Quiz Routes
+ * @apiName QuizRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles quiz creation and retrieval.
+ */
+app.use("/api/quizzes", quizRoutes);
+/**
+ * @api {use} /api/assignments Assignment Routes
+ * @apiName AssignmentRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles quiz assignment to users.
+ */
+app.use("/api/assignments", assignmentRoutes);
+/**
+ * @api {use} /api/attempts Attempt Routes
+ * @apiName AttemptRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles quiz attempt tracking and submission.
+ */
+app.use("/api/attempts", attemptRoutes);
+/**
+ * @api {use} /api/questions Question Routes
+ * @apiName QuestionRoutes
+ * @apiGroup Routes
+ * @apiVersion 1.0.0
+ * @apiDescription Handles question management for quizzes.
+ */
+app.use("/api/questions", questionRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ message: "Not Found" });
+});
+
+app.use(errorHandler);
+
+export default app;

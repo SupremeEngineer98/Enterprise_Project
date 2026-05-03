@@ -12,7 +12,6 @@ export default function AttemptPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     async function loadAttempt() {
@@ -42,20 +41,10 @@ export default function AttemptPage() {
     if (!attempt?.nextQuestion) return;
     try {
       setSubmitting(true);
-      setFeedback(null);
-
-      const result = await quizService.submitAnswer(attemptId, {
+      await quizService.submitAnswer(attemptId, {
         questionId: attempt.nextQuestion.id,
         selectedOptionId: optionId,
       });
-
-      setFeedback({
-        message: result.message,
-        isCorrect: result.isCorrect,
-      });
-
-      setTimeout(() => setFeedback(null), 1500);
-
       const updated = await quizService.getAttempt(attemptId);
       setAttempt(updated);
     } catch (error) {
@@ -154,7 +143,7 @@ export default function AttemptPage() {
                       e.stopPropagation();
                       speakText(option.optionText, "en-US");
                     }}
-                    className="shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition"
+                    className="shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 transition"
                     title="Read answer"
                   >
                     🔊
@@ -169,18 +158,6 @@ export default function AttemptPage() {
                 </div>
               ))}
             </div>
-
-            {feedback && (
-              <div
-                className={`mt-4 p-4 rounded-xl font-medium ${
-                  feedback.isCorrect
-                    ? "bg-green-50 text-green-700"
-                    : "bg-red-50 text-red-700"
-                }`}
-              >
-                {feedback.message}
-              </div>
-            )}
           </div>
         ) : (
           <div className="space-y-6">
