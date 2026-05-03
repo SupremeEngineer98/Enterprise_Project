@@ -11,15 +11,15 @@ export const quizService = {
     return data;
   },
 
-async selfAssign(quizId) {
-  const { data } = await api.post(`/assignments/quizzes/${quizId}/self`);
-  return data;
-},
+  async selfAssign(quizId) {
+    const { data } = await api.post(`/assignments/quizzes/${quizId}/self`);
+    return data;
+  },
 
-async assignQuiz(quizId, payload) {
-  const { data } = await api.post(`/assignments/quizzes/${quizId}`, payload);
-  return data;
-},
+  async assignQuiz(quizId, payload) {
+    const { data } = await api.post(`/assignments/quizzes/${quizId}`, payload);
+    return data;
+  },
 
   async startAttempt(assignmentId) {
     const { data } = await api.post(`/attempts/assignments/${assignmentId}/start`);

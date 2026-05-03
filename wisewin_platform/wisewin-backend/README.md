@@ -136,3 +136,16 @@ password123
 - Reporting endpoints are basic
 - No email notifications
 - Password reset for other users is not exposed via dedicated admin UI
+
+## Running Tests
+
+The backend includes automated tests for core functionality:
+
+- Authentication (login, current user)
+- Quiz attempts (start attempt, answer submission, completion, history)
+
+### Run tests
+
+```bash
+npm test
+```

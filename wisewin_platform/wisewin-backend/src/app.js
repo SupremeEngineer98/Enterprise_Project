@@ -147,6 +147,10 @@ app.use("/api/attempts", attemptRoutes);
  */
 app.use("/api/questions", questionRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({ message: "Not Found" });
+});
+
 app.use(errorHandler);
 
 export default app;

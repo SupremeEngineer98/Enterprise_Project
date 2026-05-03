@@ -39,7 +39,7 @@ export function startAttempt(req, res, next) {
       FROM quiz_attempts
       WHERE assignment_id = ?
     `);
-      
+
     const { totalAttempts } = countStmt.get(assignmentId);
     const nextAttemptNumber = totalAttempts + 1;
 
@@ -113,7 +113,6 @@ export function startAttempt(req, res, next) {
 export function getAttemptById(req, res, next) {
   try {
     const attemptId = Number(req.params.attemptId);
-   
 
     const attemptStmt = db.prepare(`
       SELECT
@@ -176,25 +175,25 @@ export function getAttemptById(req, res, next) {
     const nextQuestion = nextQuestionStmt.get(attempt.quizId, attemptId);
 
     let fullNextQuestion = null;
-    
+
     if (nextQuestion) {
       const optionsStmt = db.prepare(`
         SELECT
-        id,
-        option_text AS optionText
+          id,
+          option_text AS optionText
         FROM question_options
         WHERE question_id = ?
         ORDER BY display_order ASC
-        `);
-        
-        const options = optionsStmt.all(nextQuestion.id);
-        const shuffledOptions = shuffleArray(options);
-        
-        fullNextQuestion = {
-          ...nextQuestion,
-          options: shuffledOptions,
-        };
-      }
+      `);
+
+      const options = optionsStmt.all(nextQuestion.id);
+      const shuffledOptions = shuffleArray(options);
+
+      fullNextQuestion = {
+        ...nextQuestion,
+        options: shuffledOptions,
+      };
+    }
 
     return res.status(200).json({
       attemptId: attempt.attemptId,
@@ -439,7 +438,6 @@ export function getAssignmentAttempts(req, res, next) {
 
     const { totalQuestions } = totalQuestionsStmt.get(assignment.quizId);
 
-   
     const rows = db.prepare(`
       SELECT
         qa.id AS attemptId,
@@ -461,7 +459,6 @@ export function getAssignmentAttempts(req, res, next) {
       ORDER BY qa.attempt_number ASC
     `).all(assignmentId);
 
-   
     const grouped = {};
 
     for (const row of rows) {
@@ -475,7 +472,7 @@ export function getAssignmentAttempts(req, res, next) {
           startedAt: row.startedAt,
           completedAt: row.completedAt,
           totalQuestions,
-          timeTaken: grouped[row.attemptId]?.timeTaken ?? row.timeTaken,
+          timeTaken: row.timeTaken,
           answers: [],
         };
       }

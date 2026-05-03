@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-
 import { quizService } from "../services/quizService";
-import { speakText } from "../utils/speech";
+import { speakText, stopSpeaking } from "../utils/speech";
 
 export default function AttemptPage() {
   const { attemptId } = useParams();
@@ -28,15 +27,18 @@ export default function AttemptPage() {
     loadAttempt();
   }, [attemptId]);
 
+  const isFinished = attempt ? !attempt.nextQuestion : false;
+
   useEffect(() => {
-    if (!attempt) return;
-    const isFinished = !attempt.nextQuestion;
-    if (isFinished) return;
-    const timer = setInterval(() => setElapsedTime(t => t + 1), 1000);
+    if (loading || !attempt || isFinished) return;
+    const timer = setInterval(() => {
+      setElapsedTime((t) => t + 1);
+    }, 1000);
     return () => clearInterval(timer);
-  }, [attempt]);
+  }, [loading, attempt, isFinished]);
 
   const handleAnswer = async (optionId) => {
+    if (!attempt?.nextQuestion) return;
     try {
       setSubmitting(true);
       await quizService.submitAnswer(attemptId, {
@@ -52,42 +54,51 @@ export default function AttemptPage() {
     }
   };
 
-const handleSubmitAttempt = async () => {
-  try {
-    const result = await quizService.submitAttempt(attemptId, { timeTaken: elapsedTime });
-    navigate(`/attempts/${attemptId}/review`, {
-      state: { 
-        result, 
-        assignmentId: attempt.assignmentId ?? location.state?.assignmentId 
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    alert(error.response?.data?.message || "Could not submit attempt");
-  }
-};
+  const handleSubmitAttempt = async () => {
+    try {
+      const result = await quizService.submitAttempt(attemptId, {
+        timeTaken: elapsedTime,
+      });
+      navigate(`/attempts/${attemptId}/review`, {
+        state: {
+          result,
+          assignmentId: attempt.assignmentId ?? location.state?.assignmentId,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Could not submit attempt");
+    }
+  };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading attempt...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading attempt...
+      </div>
+    );
   }
 
   if (!attempt) {
-    return <div className="min-h-screen flex items-center justify-center">Attempt not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Attempt not found
+      </div>
+    );
   }
-
-  const isFinished = !attempt.nextQuestion;
 
   return (
     <div className="min-h-screen bg-[#fcf8ff] p-8">
       <div className="max-w-3xl mx-auto bg-white rounded-3xl p-8 shadow-[0_20px_60px_rgba(26,35,126,0.08)]">
-        {/* back to dashboard btn!*/}
-  <button
-    type="button"
-    onClick={() => navigate("/user")}
-    className="mb-6 px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff] transition"
-  >
-    ← Back to Dashboard
-  </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/user")}
+          className="mb-6 px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff] transition"
+        >
+          ← Back to Dashboard
+        </button>
+
         <h1 className="text-3xl font-bold text-[#000666] mb-4">Quiz Attempt</h1>
 
         <div className="flex items-center justify-between mb-8">
@@ -99,7 +110,7 @@ const handleSubmitAttempt = async () => {
           <div className="bg-[#000666] text-white rounded-2xl px-6 py-4 text-center">
             <p className="text-xs uppercase tracking-widest mb-1 opacity-70">Time</p>
             <p className="text-3xl font-bold">
-              {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}
+              {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, "0")}
             </p>
           </div>
         </div>
@@ -110,7 +121,7 @@ const handleSubmitAttempt = async () => {
               <button
                 type="button"
                 onClick={() => speakText(attempt.nextQuestion.questionText, "en-US")}
-                className="mt-1 shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 transition"
+                className="mt-1 shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition"
                 title="Read question"
               >
                 🔊
@@ -119,12 +130,19 @@ const handleSubmitAttempt = async () => {
                 {attempt.answeredCount + 1}. {attempt.nextQuestion.questionText}
               </h2>
             </div>
+
             <div className="space-y-3">
               {attempt.nextQuestion.options.map((option) => (
-                <div key={option.id} className="flex items-center gap-3 p-4 rounded-xl bg-[#f5f2ff] hover:bg-[#e8e5ff] transition-all">
+                <div
+                  key={option.id}
+                  className="flex items-center gap-3 p-4 rounded-xl bg-[#f5f2ff] hover:bg-[#e8e5ff] transition-all"
+                >
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); speakText(option.optionText, "en-US"); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      speakText(option.optionText, "en-US");
+                    }}
                     className="shrink-0 rounded-full border border-gray-300 px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-100 transition"
                     title="Read answer"
                   >
@@ -147,7 +165,6 @@ const handleSubmitAttempt = async () => {
               You have completed all questions. You can now submit your quiz.
             </p>
             <button
-              type="button"
               onClick={handleSubmitAttempt}
               className="px-6 py-3 rounded-xl bg-[#000666] text-white font-semibold hover:opacity-90"
             >

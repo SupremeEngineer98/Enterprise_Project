@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "db:init": "node src/database/initDb.js"
+    "db:init": "node src/database/initDb.js",
+    "db:test:init": "cross-env NODE_ENV=test node src/database/initTestDb.js",
+    "test": "npm run db:test:init && cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:watch": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +26,13 @@
   },
   "devDependencies": {
     "apidoc": "^1.2.0",
-    "nodemon": "^3.1.14"
+    "cross-env": "^10.1.0",
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "verbose": true
   }
 }
