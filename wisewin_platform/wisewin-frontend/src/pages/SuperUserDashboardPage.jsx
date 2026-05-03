@@ -199,10 +199,11 @@ export default function SuperUserDashboardPage() {
   const handleDeleteQuiz = async () => {
     try {
       setDeleteQuizLoading(true);
-      await quizService.deleteQuiz(deleteQuizTarget.id);
+      const targetId = deleteQuizTarget.id;
+      await quizService.deleteQuiz(targetId);
       setDeleteQuizTarget(null);
       setOpenQuizId(null);
-      setQuizQuestions((prev) => { const n = { ...prev }; delete n[deleteQuizTarget.id]; return n; });
+      setQuizQuestions((prev) => { const n = { ...prev }; delete n[targetId]; return n; });
       const updated = await quizService.getVisibleQuizzes();
       setQuizzes(updated);
     } catch (err) { alert(err.response?.data?.message || "Failed."); }
@@ -240,9 +241,10 @@ export default function SuperUserDashboardPage() {
   const handleDeleteQuestion = async () => {
     try {
       setDeleteQuestionLoading(true);
-      await quizService.deleteQuestion(deleteQuestionTarget.quizId, deleteQuestionTarget.id);
-      const updated = await quizService.getQuizQuestions(deleteQuestionTarget.quizId);
-      setQuizQuestions((prev) => ({ ...prev, [deleteQuestionTarget.quizId]: updated }));
+      const { quizId, id } = deleteQuestionTarget;
+      await quizService.deleteQuestion(quizId, id);
+      const updated = await quizService.getQuizQuestions(quizId);
+      setQuizQuestions((prev) => ({ ...prev, [quizId]: updated }));
       setDeleteQuestionTarget(null);
     } catch (err) { alert(err.response?.data?.message || "Failed."); }
     finally { setDeleteQuestionLoading(false); }
