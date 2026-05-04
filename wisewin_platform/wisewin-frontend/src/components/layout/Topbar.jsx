@@ -1,3 +1,4 @@
+// Top navigation bar — shows the page title, the logged-in user's email/role, and logout/change-password buttons
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -10,14 +11,11 @@ export default function Topbar({ title }) {
     navigate("/login");
   };
 
+  // Sends the user to the right change-password page based on their role
   const handleChangePassword = () => {
-    if (user?.role === "Administrator") {
-      navigate("/admin/change-password");
-    } else if (user?.role === "Super user") {
-      navigate("/super-user/change-password");
-    } else {
-      navigate("/user/change-password");
-    }
+    if (user?.role === "Administrator") navigate("/admin/change-password");
+    else if (user?.role === "Super user") navigate("/super-user/change-password");
+    else navigate("/user/change-password");
   };
 
   return (
@@ -32,19 +30,13 @@ export default function Topbar({ title }) {
           <p className="text-xs text-[#454652]">{user?.role}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleChangePassword}
-          className="px-4 py-2 rounded-xl bg-[#f5f2ff] text-[#000666] font-semibold hover:bg-[#e8e5ff]"
-        >
+        <button type="button" onClick={handleChangePassword}
+          className="px-4 py-2 rounded-xl bg-[#f5f2ff] text-[#000666] font-semibold hover:bg-[#e8e5ff]">
           Change Password
         </button>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff]"
-        >
+        <button type="button" onClick={handleLogout}
+          className="px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff]">
           Logout
         </button>
       </div>

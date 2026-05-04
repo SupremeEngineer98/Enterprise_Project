@@ -1,3 +1,4 @@
+// Left-side navigation bar — renders a list of links and highlights the active one
 import { NavLink } from "react-router-dom";
 
 export default function Sidebar({ items }) {
@@ -21,9 +22,7 @@ export default function Sidebar({ items }) {
               }`
             }
           >
-            <span className="material-symbols-outlined text-purple-300">
-              {item.icon}
-            </span>
+            <span className="material-symbols-outlined text-purple-300">{item.icon}</span>
             <span>{item.label}</span>
           </NavLink>
         ))}

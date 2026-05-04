@@ -1,3 +1,5 @@
+// Card displayed on the user dashboard for each assigned quiz.
+// Shows quiz info and a button to start or resume the attempt.
 import StatusBadge from "./StatusBadge";
 
 export default function QuizCard({ quiz, onAction }) {

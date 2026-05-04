@@ -1,3 +1,4 @@
+// Styled section container used on dashboard pages — has a title, optional action button, and white inner area
 export default function SectionCard({ title, action, children }) {
   return (
     <section className="rounded-2xl p-6 bg-[#e8e5ff]">

@@ -1,3 +1,4 @@
+// Reusable submit button with the WiseWin purple gradient style
 export default function Button({ children, className = "", ...props }) {
   return (
     <button

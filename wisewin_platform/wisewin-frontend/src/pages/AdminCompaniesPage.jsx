@@ -1,3 +1,4 @@
+// Admin page — view, create, edit, and delete companies. Clicking a company expands its users and quizzes.
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { companyService } from "../services/companyService";
@@ -16,23 +17,25 @@ export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Tracks which company row is currently expanded to show users/quizzes
   const [openCompanyId, setOpenCompanyId] = useState(null);
   const [details, setDetails] = useState({});
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // ── Modal state: create, edit, and delete each have their own fields ──
   // Create modal
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState(EMPTY_FORM);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
 
-  // Edit modal
+  // Edit modal — holds the company being edited and its form data
   const [editCompany, setEditCompany] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_FORM);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
-  // Delete confirm
+  // Delete confirm — holds the company to be deleted so the modal knows who to delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -49,6 +52,7 @@ export default function AdminCompaniesPage() {
     }
   }
 
+  // Expands or collapses a company row; fetches full details on first open
   const handleToggle = async (companyId) => {
     if (openCompanyId === companyId) {
       setOpenCompanyId(null);
@@ -67,7 +71,7 @@ export default function AdminCompaniesPage() {
     }
   };
 
-  // ── CREATE ──────────────────────────────────────────
+  // Creates a new company and refreshes the list
   const handleCreate = async () => {
     setCreateError("");
     if (!createForm.name.trim()) {
@@ -87,7 +91,7 @@ export default function AdminCompaniesPage() {
     }
   };
 
-  // ── EDIT ────────────────────────────────────────────
+  // Opens the edit modal pre-filled with the company's current values
   const openEdit = (company, e) => {
     e.stopPropagation();
     setEditCompany(company);
@@ -120,7 +124,7 @@ export default function AdminCompaniesPage() {
     }
   };
 
-  // ── DELETE ──────────────────────────────────────────
+  // Deletes the company and removes it from local state and the details cache
   const handleDelete = async () => {
     try {
       setDeleteLoading(true);
@@ -360,7 +364,7 @@ export default function AdminCompaniesPage() {
   );
 }
 
-// ── Reusable mini-components ──────────────────────────
+// ── Reusable mini-components shared across all modals on this page ──
 
 function Modal({ title, onClose, children }) {
   return (

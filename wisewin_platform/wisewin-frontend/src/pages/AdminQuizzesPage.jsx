@@ -1,3 +1,4 @@
+// Admin page — lists all quizzes with the ability to view questions, edit, or delete each one
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { quizService } from "../services/quizService";
@@ -13,10 +14,12 @@ const sidebarItems = [
 export default function AdminQuizzesPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Tracks which quiz row is expanded to show its questions
   const [openQuizId, setOpenQuizId] = useState(null);
   const [questions, setQuestions] = useState({});
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
+  // Edit quiz modal state
   const [editQuiz, setEditQuiz] = useState(null);
   const [editQuizForm, setEditQuizForm] = useState({});
   const [editQuizLoading, setEditQuizLoading] = useState(false);
@@ -24,9 +27,11 @@ export default function AdminQuizzesPage() {
   const [editQuizQuestions, setEditQuizQuestions] = useState([]);
   const [loadingEditQuestions, setLoadingEditQuestions] = useState(false);
 
+  // Delete quiz confirm modal
   const [deleteQuizTarget, setDeleteQuizTarget] = useState(null);
   const [deleteQuizLoading, setDeleteQuizLoading] = useState(false);
 
+  // Edit question modal — nested inside the quiz row
   const [editQuestion, setEditQuestion] = useState(null);
   const [editQuestionForm, setEditQuestionForm] = useState({});
   const [editQuestionLoading, setEditQuestionLoading] = useState(false);
@@ -46,6 +51,7 @@ export default function AdminQuizzesPage() {
     }
   }
 
+  // Expands/collapses a quiz row; fetches questions on first open
   const handleToggle = async (quizId) => {
     if (openQuizId === quizId) { setOpenQuizId(null); return; }
     setOpenQuizId(quizId);
@@ -59,6 +65,7 @@ export default function AdminQuizzesPage() {
     }
   };
 
+  // Opens the edit quiz modal and loads its questions for the inline editor
   const openEditQuiz = async (quiz, e) => {
     e.stopPropagation();
     setEditQuiz(quiz);
@@ -74,6 +81,7 @@ export default function AdminQuizzesPage() {
     }
   };
 
+  // Saves quiz changes and refreshes the list
   const handleEditQuiz = async () => {
     setEditQuizError("");
     if (!editQuizForm.title?.trim()) { setEditQuizError("Title is required."); return; }
@@ -89,6 +97,7 @@ export default function AdminQuizzesPage() {
     }
   };
 
+  // Deletes the quiz and removes it from local state
   const handleDeleteQuiz = async () => {
     try {
       setDeleteQuizLoading(true);
@@ -104,12 +113,14 @@ export default function AdminQuizzesPage() {
     }
   };
 
+  // Opens the edit question modal pre-filled with the question's current text and options
   const openEditQuestion = (question, quizId) => {
     setEditQuestion({ ...question, quizId });
     setEditQuestionForm({ questionText: question.questionText, options: question.options.map((o) => ({ ...o })) });
     setEditQuestionError("");
   };
 
+  // Updates one option's text without touching the others
   const handleOptionChange = (index, value) => {
     setEditQuestionForm((f) => {
       const options = [...f.options];
@@ -118,6 +129,7 @@ export default function AdminQuizzesPage() {
     });
   };
 
+  // Marks exactly one option as correct (resets all others)
   const handleCorrectChange = (index) => {
     setEditQuestionForm((f) => ({
       ...f,
@@ -125,6 +137,7 @@ export default function AdminQuizzesPage() {
     }));
   };
 
+  // Saves the edited question, then refreshes both the list view and the edit modal
   const handleEditQuestion = async () => {
     setEditQuestionError("");
     if (!editQuestionForm.questionText?.trim()) { setEditQuestionError("Question text is required."); return; }
@@ -146,6 +159,7 @@ export default function AdminQuizzesPage() {
     }
   };
 
+  // Deletes the question and refreshes the question lists
   const handleDeleteQuestion = async () => {
     try {
       setDeleteQuestionLoading(true);

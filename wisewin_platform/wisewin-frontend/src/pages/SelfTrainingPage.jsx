@@ -1,3 +1,4 @@
+// Lets regular users browse available quizzes and self-assign ones they want to take for practice
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -10,14 +11,15 @@ const sidebarItems = [
 
 export default function SelfTrainingPage() {
   const navigate = useNavigate();
-  const [quizzes, setQuizzes] = useState([]);
-  const [assignments, setAssignments] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);         // all quizzes visible to this user
+  const [assignments, setAssignments] = useState([]);  // user's current assignments (to detect duplicates)
   const [loading, setLoading] = useState(true);
-  const [assigning, setAssigning] = useState(null); // quizId being assigned
+  const [assigning, setAssigning] = useState(null);   // quizId currently being assigned (shows spinner on that row)
   const [successId, setSuccessId] = useState(null);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("");           // live search filter
 
+  // Fetch quizzes and current assignments in parallel on mount
   useEffect(() => {
     async function load() {
       try {
@@ -25,6 +27,7 @@ export default function SelfTrainingPage() {
           quizService.getVisibleQuizzes(),
           quizService.getMyAssignments(),
         ]);
+        // Only show active quizzes
         setQuizzes(quizzesData.filter((q) => q.isActive));
         setAssignments(assignmentsData);
       } finally {
@@ -34,13 +37,15 @@ export default function SelfTrainingPage() {
     load();
   }, []);
 
-  // quizIds that user already has active assignment for
+  // Build a set of quiz IDs that the user already has an active assignment for
+  // Used to disable the "Start Training" button on those rows
   const activeQuizIds = new Set(
     assignments
       .filter((a) => a.status === "ASSIGNED" || a.status === "IN_PROGRESS")
       .map((a) => a.quizId)
   );
 
+  // Assigns the quiz to the user then immediately starts an attempt and navigates to the quiz screen
   const handleSelfAssign = async (quiz) => {
     setError("");
     setSuccessId(null);
@@ -48,14 +53,16 @@ export default function SelfTrainingPage() {
       setAssigning(quiz.id);
       const result = await quizService.selfAssign(quiz.id);
       setSuccessId(quiz.id);
-      // Refresh assignments then navigate to attempt
+
+      // Refresh assignments so the button shows "Already assigned" if they come back
       const updated = await quizService.getMyAssignments();
       setAssignments(updated);
-      // Auto-start the quiz
-const attempt = await quizService.startAttempt(result.assignment.id);
-navigate(`/attempts/${attempt.attemptId}`, {
-  state: { assignmentId: result.assignment.id }  
-});
+
+      // Auto-start: begin the attempt straight away and go to the quiz
+      const attempt = await quizService.startAttempt(result.assignment.id);
+      navigate(`/attempts/${attempt.attemptId}`, {
+        state: { assignmentId: result.assignment.id }
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Could not assign quiz.");
     } finally {
@@ -63,6 +70,7 @@ navigate(`/attempts/${attempt.attemptId}`, {
     }
   };
 
+  // Filter the quiz list by search input (case-insensitive title match)
   const filtered = quizzes.filter((q) =>
     q.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -72,26 +80,19 @@ navigate(`/attempts/${attempt.attemptId}`, {
 
       <section className="relative overflow-hidden bg-[#1A237E] rounded-3xl p-10 text-white shadow-[0_30px_60px_rgba(26,35,126,0.3)]">
         <h1 className="text-4xl font-black mb-2">Self Training</h1>
-        <p className="opacity-90 max-w-md">
-          Browse available quizzes and start training on your own.
-        </p>
+        <p className="opacity-90 max-w-md">Browse available quizzes and start training on your own.</p>
       </section>
 
-      {error && (
-        <div className="p-4 rounded-xl bg-red-50 text-red-700 text-sm">{error}</div>
-      )}
+      {error && <div className="p-4 rounded-xl bg-red-50 text-red-700 text-sm">{error}</div>}
 
-      {/* Search */}
+      {/* Search box — filters the list in real time */}
       <div className="relative">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Search quizzes..."
-          className="w-full px-5 py-3 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E] bg-white text-[#000666]"
-        />
+          className="w-full px-5 py-3 rounded-xl border border-[#e0ddf5] focus:outline-none focus:ring-2 focus:ring-[#1A237E] bg-white text-[#000666]" />
       </div>
 
+      {/* Quiz list — one row per quiz */}
       <section className="space-y-3">
         {loading ? (
           <div className="rounded-2xl bg-white p-6 text-[#454652]">Loading quizzes...</div>
@@ -102,30 +103,28 @@ navigate(`/attempts/${attempt.attemptId}`, {
           const isAssigning = assigning === quiz.id;
 
           return (
-            <div key={quiz.id} className="flex justify-between items-center p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all shadow-sm">
+            <div key={quiz.id}
+              className="flex justify-between items-center p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all shadow-sm">
               <div className="flex items-center gap-3 flex-1 min-w-0">
+                {/* Avatar circle using the first letter of the quiz title */}
                 <div className="w-10 h-10 rounded-full bg-[#e8e5ff] flex items-center justify-center text-[#1A237E] font-bold text-sm flex-shrink-0">
                   {quiz.title[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="font-medium text-[#000666] truncate">{quiz.title}</p>
-                  <p className="text-sm text-[#454652] truncate">
-                    {quiz.description ?? "No description"}
-                  </p>
+                  <p className="text-sm text-[#454652] truncate">{quiz.description ?? "No description"}</p>
                 </div>
               </div>
 
               <div className="ml-4 flex-shrink-0">
+                {/* If already assigned, show a label instead of the button */}
                 {alreadyAssigned ? (
                   <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-[#e8e5ff] text-[#000666]">
                     Already assigned
                   </span>
                 ) : (
-                  <button
-                    onClick={() => handleSelfAssign(quiz)}
-                    disabled={isAssigning}
-                    className="px-4 py-2 rounded-xl bg-[#1A237E] text-white font-semibold text-sm hover:bg-[#000666] transition disabled:opacity-50"
-                  >
+                  <button onClick={() => handleSelfAssign(quiz)} disabled={isAssigning}
+                    className="px-4 py-2 rounded-xl bg-[#1A237E] text-white font-semibold text-sm hover:bg-[#000666] transition disabled:opacity-50">
                     {isAssigning ? "Starting..." : "Start Training"}
                   </button>
                 )}
@@ -134,7 +133,6 @@ navigate(`/attempts/${attempt.attemptId}`, {
           );
         })}
       </section>
-
     </DashboardLayout>
   );
 }

@@ -1,7 +1,6 @@
+// Shows a small progress bar with a percentage — used in user rows to show quiz completion
 export default function ProgressBadge({ completed, total }) {
-  if (!total) {
-    return <span className="text-sm text-[#454652]">No assignments</span>;
-  }
+  if (!total) return <span className="text-sm text-[#454652]">No assignments</span>;
 
   const percentage = Math.round((completed / total) * 100);
 

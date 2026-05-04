@@ -1,3 +1,4 @@
+// Super user overview — shows company stats, user list with progress, and recent activity
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -16,6 +17,7 @@ const sidebarItems = [
   { to: "/super-user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
 ];
 
+// Generates a random 12-char password for the password reset section in the edit modal
 function generatePassword() {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -28,6 +30,7 @@ export default function SuperUserDashboardPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [stats, setStats] = useState({ totalAssignments: 0, pendingAssignments: 0, completedAssignments: 0 });
   const [loading, setLoading] = useState(true);
+  // Which modal is open: null | 'users' | 'pending' | 'completed' | 'quizzes'
   const [activeModal, setActiveModal] = useState(null);
 
   const [scoreboardData, setScoreboardData] = useState([]);
@@ -67,8 +70,10 @@ export default function SuperUserDashboardPage() {
   const [deleteQuestionTarget, setDeleteQuestionTarget] = useState(null);
   const [deleteQuestionLoading, setDeleteQuestionLoading] = useState(false);
 
+  // Only load once we have the companyId from the auth context
   useEffect(() => { if (user?.companyId) loadDashboard(); }, [user]);
 
+  // Loads users, quizzes, and stats in parallel for the dashboard tiles
   async function loadDashboard() {
     try {
       const [usersData, quizzesData, statsData] = await Promise.all([
@@ -85,6 +90,7 @@ export default function SuperUserDashboardPage() {
     finally { setLoading(false); }
   }
 
+  // Refreshes just the user list (called after creating, editing, or deleting a user)
   async function reloadUsers() {
     const updated = await userService.getCompanyUsers(user.companyId);
     const filtered = updated.filter((u) => u.role === "User");
@@ -92,8 +98,10 @@ export default function SuperUserDashboardPage() {
     setUsers(filtered.map((u) => ({ ...u, name: u.email.split("@")[0], assignedQuizzes: u.assignedQuizzes ?? 0, completedQuizzes: u.completedQuizzes ?? 0 })));
   }
 
+  // Quizzes this super user can see: their company's quizzes + platform-wide quizzes
   const allVisibleQuizzes = quizzes.filter((q) => q.companyId === user.companyId || q.companyId === null);
 
+  // Opens the scoreboard modal and lazily loads the data the first time
   const openScoreboard = async () => {
     setActiveModal("scoreboard");
     if (scoreboardData.length > 0) return;
@@ -104,6 +112,7 @@ export default function SuperUserDashboardPage() {
     } finally { setLoadingScoreboard(false); }
   };
 
+  // Opens the pending assignments modal
   const openPending = async () => {
     setActiveModal("pending");
     if (pendingData.length > 0) return;
@@ -114,6 +123,7 @@ export default function SuperUserDashboardPage() {
     } finally { setLoadingPending(false); }
   };
 
+  // Opens the completed assignments modal with detailed per-attempt data
   const openCompleted = async () => {
     setActiveModal("completed");
     if (completedData.length > 0) return;
@@ -130,6 +140,7 @@ export default function SuperUserDashboardPage() {
     setEditError(""); setNewPassword(""); setResetSuccess(""); setResetError(""); setShowPassword(false);
   };
 
+  // Super users can only change a user's active status (not email or company)
   const handleEdit = async () => {
     setEditError("");
     if (!editForm.email?.trim()) { setEditError("Email is required."); return; }

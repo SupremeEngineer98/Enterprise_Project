@@ -1,3 +1,4 @@
+// Admin page — lists and manages regular users across all companies
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { userService } from "../services/userService";
@@ -11,6 +12,7 @@ const sidebarItems = [
   { to: "/admin/quizzes", icon: "quiz", label: "Quizzes" },
 ];
 
+// Generates a random 12-character password — used by the password reset section in the edit modal
 function generatePassword() {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -50,8 +52,10 @@ export default function AdminUsersPage() {
     }
   }
 
+  // Only show regular Users on this page — super users have their own page
   const normalUsers = users.filter((u) => u.role === "User");
 
+  // Opens the edit modal and resets all password-related feedback state
   const openEdit = (user) => {
     setEditUser(user);
     setEditForm({ email: user.email, companyId: user.companyId, isActive: user.isActive });
@@ -62,6 +66,7 @@ export default function AdminUsersPage() {
     setShowPassword(false);
   };
 
+  // Saves user info changes (email, company, active status)
   const handleEdit = async () => {
     setEditError("");
     if (!editForm.email?.trim()) { setEditError("Email is required."); return; }
@@ -77,6 +82,7 @@ export default function AdminUsersPage() {
     }
   };
 
+  // Resets the user's password — the admin doesn't need to provide the old one
   const handleResetPassword = async () => {
     setResetError("");
     setResetSuccess("");
@@ -93,6 +99,7 @@ export default function AdminUsersPage() {
     }
   };
 
+  // Deletes the user permanently and refreshes the list
   const handleDelete = async () => {
     try {
       setDeleteLoading(true);

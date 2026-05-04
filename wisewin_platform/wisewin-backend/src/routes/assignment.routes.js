@@ -1,44 +1,25 @@
+// Assignment routes — controls who can create, view, and self-assign quizzes
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/requireRole.js";
 import {
-  getMyAssignments,
-  createAssignment,
-  selfAssignQuiz,
-  getCompanyCompletedAssignments,
-  getUserPendingAssignments,
+  getMyAssignments, createAssignment, selfAssignQuiz,
+  getCompanyCompletedAssignments, getUserPendingAssignments,
 } from "../controllers/assignment.controller.js";
 
 const router = Router();
 
+// Regular user sees their own assignments
 router.get("/me", authMiddleware, requireRole("User"), getMyAssignments);
 
-router.post(
-  "/quizzes/:quizId",
-  authMiddleware,
-  requireRole("Administrator", "Super user"),
-  createAssignment
-);
+// Admin/super user assigns a quiz to a specific user
+router.post("/quizzes/:quizId", authMiddleware, requireRole("Administrator", "Super user"), createAssignment);
 
-router.post(
-  "/quizzes/:quizId/self",
-  authMiddleware,
-  requireRole("User"),
-  selfAssignQuiz
-);
+// Regular user self-assigns a quiz without needing an admin
+router.post("/quizzes/:quizId/self", authMiddleware, requireRole("User"), selfAssignQuiz);
 
-router.get(
-  "/user/:userId/pending",
-  authMiddleware,
-  requireRole("Administrator", "Super user"),
-  getUserPendingAssignments
-);
-
-router.get(
-  "/company/:companyId/completed",
-  authMiddleware,
-  requireRole("Administrator", "Super user"),
-  getCompanyCompletedAssignments
-);
+// Admin/super user views pending or completed assignments for reporting
+router.get("/user/:userId/pending", authMiddleware, requireRole("Administrator", "Super user"), getUserPendingAssignments);
+router.get("/company/:companyId/completed", authMiddleware, requireRole("Administrator", "Super user"), getCompanyCompletedAssignments);
 
 export default router;

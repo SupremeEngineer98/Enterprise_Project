@@ -1,3 +1,4 @@
+// Super user page — assign a quiz to a specific user in their company
 import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
@@ -9,14 +10,13 @@ const sidebarItems = [
   { to: "/super-user/assign", icon: "assignment_add", label: "Assign Quiz" },
   { to: "/super-user/create-user", icon: "person_add", label: "Create User" },
   { to: "/super-user/create-quiz", icon: "quiz", label: "Create Quiz" },
-     { to: "/super-user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
+  { to: "/super-user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
 ];
 
 export default function SuperUserAssignQuizPage() {
   const { user } = useAuth();
-
-  const [users, setUsers] = useState([]);
-  const [quizzes, setQuizzes] = useState([]);
+  const [users, setUsers] = useState([]);    // only regular Users in the super user's company
+  const [quizzes, setQuizzes] = useState([]); // quizzes visible to this company
   const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({ userId: "", quizId: "", dueDate: "" });
@@ -24,6 +24,7 @@ export default function SuperUserAssignQuizPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // Fetch users and quizzes in parallel on mount (only once we have the companyId)
   useEffect(() => {
     async function loadData() {
       try {
@@ -31,8 +32,9 @@ export default function SuperUserAssignQuizPage() {
           userService.getCompanyUsers(user.companyId),
           quizService.getVisibleQuizzes(),
         ]);
-
+        // Only show regular Users (not other super users)
         setUsers(usersData.filter((u) => u.role === "User"));
+        // Only show active quizzes that belong to this company or are platform-wide
         setQuizzes(quizzesData.filter(
           (q) => q.isActive && (q.companyId === null || q.companyId === user.companyId)
         ));
@@ -42,10 +44,10 @@ export default function SuperUserAssignQuizPage() {
         setLoading(false);
       }
     }
-
     if (user?.companyId) loadData();
   }, [user]);
 
+  // Derive the full objects for the selected user and quiz to show in the summary panel
   const selectedUser = useMemo(() => users.find((u) => String(u.id) === String(form.userId)), [users, form.userId]);
   const selectedQuiz = useMemo(() => quizzes.find((q) => String(q.id) === String(form.quizId)), [quizzes, form.quizId]);
 
@@ -65,6 +67,7 @@ export default function SuperUserAssignQuizPage() {
       setSubmitting(true);
       await quizService.assignQuiz(form.quizId, {
         userId: Number(form.userId),
+        // Convert date string to end-of-day ISO format, or null if no due date
         dueDate: form.dueDate ? `${form.dueDate}T23:59:59Z` : null,
       });
       setMessage(`Quiz assigned successfully to ${selectedUser?.email || "user"}`);
@@ -76,9 +79,7 @@ export default function SuperUserAssignQuizPage() {
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="Assign Quiz">
@@ -90,6 +91,7 @@ export default function SuperUserAssignQuizPage() {
       {error && <div className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>}
       {message && <div className="p-4 rounded-xl bg-green-50 text-green-700">{message}</div>}
 
+      {/* Two-column layout: form on the left, live summary panel on the right */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white rounded-3xl p-8 shadow-[0_20px_60px_rgba(26,35,126,0.08)]">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -113,6 +115,7 @@ export default function SuperUserAssignQuizPage() {
 
             <div>
               <label className="block text-sm font-medium text-[#454652] mb-2">Due Date</label>
+              {/* min prevents selecting past dates */}
               <input type="date" name="dueDate" value={form.dueDate} onChange={handleChange}
                 min={new Date().toISOString().split("T")[0]}
                 className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666] focus:outline-none focus:ring-2 focus:ring-[#83439E]" />
@@ -125,6 +128,7 @@ export default function SuperUserAssignQuizPage() {
           </form>
         </div>
 
+        {/* Live summary panel — updates as the user picks values in the form */}
         <div className="bg-white rounded-3xl p-6 shadow-[0_20px_60px_rgba(26,35,126,0.08)]">
           <h2 className="text-xl font-bold text-[#000666] mb-4">Assignment Summary</h2>
           <div className="space-y-4 text-sm">

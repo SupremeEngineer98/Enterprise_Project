@@ -1,3 +1,4 @@
+// Company service — API calls for managing companies (admin only)
 import { api } from "./api";
 
 export const companyService = {
@@ -6,6 +7,7 @@ export const companyService = {
     return data;
   },
 
+  // Returns the company details including its users and quizzes
   async getCompanyDetails(companyId) {
     const { data } = await api.get(`/companies/${companyId}`);
     return data;
@@ -21,6 +23,7 @@ export const companyService = {
     return data;
   },
 
+  // Deletes a company and everything linked to it (users, quizzes, attempts)
   async deleteCompany(companyId) {
     const { data } = await api.delete(`/companies/${companyId}`);
     return data;

@@ -1,3 +1,6 @@
+// Sets up a fresh, isolated SQLite database for automated tests.
+// Every time this runs it deletes the old test DB and rebuilds it from scratch
+// so tests always start from a clean, known state.
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -5,13 +8,13 @@ import bcrypt from "bcryptjs";
 
 const dbPath = path.resolve("src/database/wisewin.test.db");
 
-if (fs.existsSync(dbPath)) {
-  fs.unlinkSync(dbPath);
-}
+// Wipe any existing test DB so there's no leftover data from a previous run
+if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
 
 const db = new Database(dbPath);
 db.pragma("foreign_keys = ON");
 
+// Create all the tables the app needs (mirrors the real schema)
 db.exec(`
 CREATE TABLE companies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,15 +120,11 @@ CREATE TABLE quiz_attempt_answers (
 );
 `);
 
+// Seed the minimum data needed for tests to run: roles, one company, and two users
 db.prepare(`INSERT INTO roles (id, name) VALUES (1, 'Administrator'), (2, 'Super user'), (3, 'User')`).run();
-
-db.prepare(`
-  INSERT INTO companies (id, name, status)
-  VALUES (1, 'Test Company', 'ACTIVE')
-`).run();
+db.prepare(`INSERT INTO companies (id, name, status) VALUES (1, 'Test Company', 'ACTIVE')`).run();
 
 const passwordHash = bcrypt.hashSync("password123", 10);
-
 db.prepare(`
   INSERT INTO users (id, company_id, role_id, email, password_hash, is_active)
   VALUES
@@ -134,5 +133,4 @@ db.prepare(`
 `).run(passwordHash, passwordHash);
 
 db.close();
-
 console.log("Test database initialized.");

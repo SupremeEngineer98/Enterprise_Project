@@ -1,3 +1,4 @@
+// A single KPI card — shows an icon, a label, and a big number (e.g. "Total Companies: 5")
 export default function StatCard({ title, value, icon }) {
   return (
     <div className="p-6 rounded-2xl bg-white shadow-[0_10px_30px_rgba(26,35,126,0.08)]">

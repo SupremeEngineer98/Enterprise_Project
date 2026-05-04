@@ -1,3 +1,4 @@
+// Reusable text input with an optional icon on the left
 export default function Input({ icon, className = "", ...props }) {
   return (
     <div className="relative">

@@ -1,3 +1,4 @@
+// Admin page — lists and manages super users across all companies
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { userService } from "../services/userService";
@@ -11,6 +12,7 @@ const sidebarItems = [
   { to: "/admin/quizzes", icon: "quiz", label: "Quizzes" },
 ];
 
+// Generates a random 12-character password — used for password resets in the edit modal
 function generatePassword() {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -50,6 +52,7 @@ export default function AdminSuperUsersPage() {
     }
   }
 
+  // Filter to only super users — regular Users are managed on their own page
   const superUsers = users.filter((u) => u.role === "Super user");
 
   const openEdit = (user) => {

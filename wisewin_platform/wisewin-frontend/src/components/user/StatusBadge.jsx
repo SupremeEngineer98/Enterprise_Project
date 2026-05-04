@@ -1,3 +1,4 @@
+// Coloured pill that shows an assignment's status (e.g. COMPLETED = green, OVERDUE = red)
 export default function StatusBadge({ status }) {
   const map = {
     COMPLETED: "bg-green-100 text-green-700",

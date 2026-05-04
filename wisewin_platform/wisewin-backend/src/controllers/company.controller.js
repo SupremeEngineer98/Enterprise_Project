@@ -1,17 +1,13 @@
+// Company controller — CRUD operations for companies.
+// Only Administrators can create, update, or delete companies.
 import { db } from "../database/db.js";
 
-// GET all companies
+// GET /api/companies — returns all companies ordered by newest first
 export function getAllCompanies(req, res, next) {
   try {
     const stmt = db.prepare(`
-      SELECT
-        id,
-        name,
-        status,
-        created_at AS createdAt,
-        updated_at AS updatedAt
-      FROM companies
-      ORDER BY id DESC
+      SELECT id, name, status, created_at AS createdAt, updated_at AS updatedAt
+      FROM companies ORDER BY id DESC
     `);
 
     const companies = stmt.all();
@@ -21,7 +17,7 @@ export function getAllCompanies(req, res, next) {
   }
 }
 
-// GET single company with users + quizzes
+// GET /api/companies/:id — returns a single company with its users and quizzes attached
 export function getCompanyDetails(req, res, next) {
   try {
     const { id } = req.params;
@@ -37,17 +33,13 @@ export function getCompanyDetails(req, res, next) {
 
     const users = db.prepare(`
       SELECT u.id, u.email, u.is_active AS isActive, r.name AS role
-      FROM users u
-      LEFT JOIN roles r ON r.id = u.role_id
-      WHERE u.company_id = ?
-      ORDER BY u.email ASC
+      FROM users u LEFT JOIN roles r ON r.id = u.role_id
+      WHERE u.company_id = ? ORDER BY u.email ASC
     `).all(id);
 
     const quizzes = db.prepare(`
       SELECT id, title, description, created_at AS createdAt
-      FROM quizzes
-      WHERE company_id = ?
-      ORDER BY created_at DESC
+      FROM quizzes WHERE company_id = ? ORDER BY created_at DESC
     `).all(id);
 
     res.status(200).json({ ...company, users, quizzes });
@@ -56,7 +48,7 @@ export function getCompanyDetails(req, res, next) {
   }
 }
 
-// POST create company
+// POST /api/companies — creates a new company; rejects duplicate names
 export function createCompany(req, res, next) {
   try {
     const { name, status = "ACTIVE" } = req.body;
@@ -70,12 +62,10 @@ export function createCompany(req, res, next) {
       return res.status(409).json({ message: "A company with this name already exists" });
     }
 
-    const stmt = db.prepare(`
+    const result = db.prepare(`
       INSERT INTO companies (name, status, created_at, updated_at)
       VALUES (?, ?, datetime('now'), datetime('now'))
-    `);
-
-    const result = stmt.run(name.trim(), status);
+    `).run(name.trim(), status);
 
     const company = db.prepare(`SELECT * FROM companies WHERE id = ?`).get(result.lastInsertRowid);
     res.status(201).json(company);
@@ -84,7 +74,7 @@ export function createCompany(req, res, next) {
   }
 }
 
-// PUT update company
+// PUT /api/companies/:id — updates a company's name or status (only the fields sent are changed)
 export function updateCompany(req, res, next) {
   try {
     console.log("UPDATE COMPANY body:", req.body);
@@ -96,15 +86,13 @@ export function updateCompany(req, res, next) {
       return res.status(404).json({ message: "Company not found" });
     }
 
-    const stmt = db.prepare(`
+    db.prepare(`
       UPDATE companies
       SET name = COALESCE(?, name),
           status = COALESCE(?, status),
           updated_at = datetime('now')
       WHERE id = ?
-    `);
-
-    stmt.run(name?.trim() || null, status || null, id);
+    `).run(name?.trim() || null, status || null, id);
 
     const updated = db.prepare(`SELECT * FROM companies WHERE id = ?`).get(id);
     res.status(200).json(updated);
@@ -113,18 +101,18 @@ export function updateCompany(req, res, next) {
   }
 }
 
-// =========================
-// DELETE COMPANY — διαγραφή όλων
-// =========================
+// DELETE /api/companies/:id
+// Deletes a company and everything linked to it in a single transaction
+// so we don't end up with orphaned data if something fails halfway through.
+// Order matters: answers → attempts → assignments → question options → questions → quizzes → users → company
 export function deleteCompany(req, res, next) {
   try {
     const { id } = req.params;
- 
+
     const existing = db.prepare(`SELECT id FROM companies WHERE id = ?`).get(id);
     if (!existing) throw new ApiError(404, "Company not found");
- 
+
     db.transaction(() => {
-      // 1. Attempt answers
       db.prepare(`
         DELETE FROM quiz_attempt_answers
         WHERE attempt_id IN (
@@ -134,49 +122,30 @@ export function deleteCompany(req, res, next) {
           WHERE u.company_id = ?
         )
       `).run(id);
- 
-      // 2. Attempts
+
       db.prepare(`
         DELETE FROM quiz_attempts
         WHERE assignment_id IN (
           SELECT qa.id FROM quiz_assignments qa
-          INNER JOIN users u ON u.id = qa.user_id
-          WHERE u.company_id = ?
+          INNER JOIN users u ON u.id = qa.user_id WHERE u.company_id = ?
         )
       `).run(id);
- 
-      // 3. Assignments
-      db.prepare(`
-        DELETE FROM quiz_assignments
-        WHERE user_id IN (SELECT id FROM users WHERE company_id = ?)
-      `).run(id);
- 
-      // 4. Quiz questions options
+
+      db.prepare(`DELETE FROM quiz_assignments WHERE user_id IN (SELECT id FROM users WHERE company_id = ?)`).run(id);
+
       db.prepare(`
         DELETE FROM question_options
         WHERE question_id IN (
-          SELECT q.id FROM questions q
-          INNER JOIN quizzes qz ON qz.id = q.quiz_id
-          WHERE qz.company_id = ?
+          SELECT q.id FROM questions q INNER JOIN quizzes qz ON qz.id = q.quiz_id WHERE qz.company_id = ?
         )
       `).run(id);
- 
-      // 5. Quiz questions
-      db.prepare(`
-        DELETE FROM questions
-        WHERE quiz_id IN (SELECT id FROM quizzes WHERE company_id = ?)
-      `).run(id);
- 
-      // 6. Quizzes
+
+      db.prepare(`DELETE FROM questions WHERE quiz_id IN (SELECT id FROM quizzes WHERE company_id = ?)`).run(id);
       db.prepare(`DELETE FROM quizzes WHERE company_id = ?`).run(id);
- 
-      // 7. Users
       db.prepare(`DELETE FROM users WHERE company_id = ?`).run(id);
- 
-      // 8. Company
       db.prepare(`DELETE FROM companies WHERE id = ?`).run(id);
     })();
- 
+
     return res.status(200).json({ message: "Company deleted successfully" });
   } catch (error) {
     next(error);

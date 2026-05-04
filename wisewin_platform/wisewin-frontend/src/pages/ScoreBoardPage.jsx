@@ -1,3 +1,4 @@
+// User-facing scoreboard — shows how the logged-in user ranks against others in the same company
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -9,20 +10,22 @@ const sidebarItems = [
   { to: "/user/scoreboard", icon: "leaderboard", label: "Scoreboard" },
 ];
 
+// Emoji medals for the top 3 spots on the podium
 const medals = ["🥇", "🥈", "🥉"];
 
 export default function ScoreboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [data, setData] = useState([]);
+  const [data, setData] = useState([]);   // ranked list of users with their stats
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Fetch the company leaderboard data on mount (only after we have the user's companyId)
   useEffect(() => {
     async function load() {
       try {
         const result = await userService.getUserComparison(user.companyId);
-        setData(result);
+        setData(result); // already sorted by the API: best score first
       } catch (err) {
         console.error(err);
         setError("Could not load scoreboard.");
@@ -36,11 +39,8 @@ export default function ScoreboardPage() {
   return (
     <DashboardLayout sidebarItems={sidebarItems} title="User Dashboard">
       <div className="flex items-center gap-4 mb-2">
-        <button
-          type="button"
-          onClick={() => navigate("/user")}
-          className="px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff]"
-        >
+        <button type="button" onClick={() => navigate("/user")}
+          className="px-4 py-2 rounded-xl bg-[#e8e5ff] text-[#000666] font-semibold hover:bg-[#dcd7ff]">
           ← Back
         </button>
         <div>
@@ -58,41 +58,33 @@ export default function ScoreboardPage() {
       ) : (
         <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(26,35,126,0.08)] overflow-hidden">
 
-          {/* Top 3 podium */}
+          {/* Podium — top 3 users displayed as bar chart columns (1st in the middle, taller) */}
           <div className="bg-[#f5f2ff] p-6 flex justify-center items-end gap-6">
             {data.slice(0, 3).map((u, i) => (
-              <div
-                key={u.userId}
-                className={`flex flex-col items-center gap-2 ${
-                  i === 0 ? "order-2" : i === 1 ? "order-1" : "order-3"
-                }`}
-              >
+              <div key={u.userId}
+                className={`flex flex-col items-center gap-2 ${i === 0 ? "order-2" : i === 1 ? "order-1" : "order-3"}`}>
                 <span className="text-3xl">{medals[i]}</span>
+                {/* Bar height: 1st = h-24, 2nd = h-16, 3rd = h-12 */}
                 <div className={`w-16 rounded-t-xl flex items-end justify-center pb-2 font-bold text-white text-sm ${
-                  i === 0 ? "h-24 bg-[#6c5ce7]" :
-                  i === 1 ? "h-16 bg-[#a29bfe]" :
-                  "h-12 bg-[#d3cffe]"
+                  i === 0 ? "h-24 bg-[#6c5ce7]" : i === 1 ? "h-16 bg-[#a29bfe]" : "h-12 bg-[#d3cffe]"
                 }`}>
                   {u.avgScore}%
                 </div>
-                <p className="text-xs font-semibold text-[#000666] text-center max-w-[70px] truncate">
-                  {u.name}
-                </p>
+                <p className="text-xs font-semibold text-[#000666] text-center max-w-[70px] truncate">{u.name}</p>
               </div>
             ))}
           </div>
 
-          {/* Full list */}
+          {/* Full ranked list — highlights the currently logged-in user's row */}
           <div className="divide-y divide-[#f0ecff]">
             {data.map((u, index) => {
-              const isMe = u.userId === user.sub;
+              const isMe = u.userId === user.sub; // highlight the current user's row
               return (
-                <div
-                  key={u.userId}
+                <div key={u.userId}
                   className={`px-6 py-4 flex items-center gap-4 transition-all ${
                     isMe ? "bg-[#f0ecff]" : "hover:bg-[#faf9ff]"
-                  }`}
-                >
+                  }`}>
+                  {/* Rank badge — gold/silver/bronze for top 3, purple for the rest */}
                   <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                     index === 0 ? "bg-yellow-100 text-yellow-700" :
                     index === 1 ? "bg-gray-100 text-gray-600" :
@@ -112,6 +104,7 @@ export default function ScoreboardPage() {
                     </p>
                   </div>
 
+                  {/* Score colour: green ≥80%, yellow ≥50%, red below */}
                   <span className={`text-lg font-bold ${
                     u.avgScore >= 80 ? "text-green-600" :
                     u.avgScore >= 50 ? "text-yellow-600" :

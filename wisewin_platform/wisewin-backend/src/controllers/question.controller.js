@@ -1,6 +1,10 @@
+// Question controller — manages quiz questions and their answer options.
+// Each question must have exactly one correct option.
 import { db } from "../database/db.js";
 import { ApiError } from "../utils/apiError.js";
 
+// POST /api/quizzes/:quizId/questions — adds a new question (with options) to a quiz.
+// The question and all its options are inserted inside a transaction so they're saved together or not at all.
 export function createQuestion(req, res, next) {
   try {
     const quizId = Number(req.params.quizId);
@@ -9,6 +13,7 @@ export function createQuestion(req, res, next) {
     if (!questionText || !Array.isArray(options) || options.length < 2)
       throw new ApiError(400, "questionText and at least 2 options are required");
 
+    // Validate that exactly one option is marked as correct
     const correctOptions = options.filter((opt) => opt.isCorrect === true);
     if (correctOptions.length !== 1) throw new ApiError(400, "Exactly one correct option is required");
 
@@ -21,6 +26,7 @@ export function createQuestion(req, res, next) {
     }
 
     const transaction = db.transaction(() => {
+      // If no display order was given, automatically put this question at the end
       const resolvedOrder = displayOrder ??
         db.prepare(`SELECT COALESCE(MAX(display_order), 0) + 1 AS nextOrder FROM questions WHERE quiz_id = ?`).get(quizId).nextOrder;
 
@@ -31,6 +37,7 @@ export function createQuestion(req, res, next) {
 
       const questionId = questionResult.lastInsertRowid;
 
+      // Insert all options for this question
       const optionStmt = db.prepare(`INSERT INTO question_options (question_id, option_text, is_correct, display_order) VALUES (?, ?, ?, ?)`);
       options.forEach((option, index) => {
         if (!option.optionText) throw new ApiError(400, "Each option must have optionText");
@@ -61,6 +68,7 @@ export function createQuestion(req, res, next) {
   }
 }
 
+// GET /api/quizzes/:quizId/questions — returns all questions for a quiz, each with its options
 export function getQuizQuestions(req, res, next) {
   try {
     const quizId = Number(req.params.quizId);
@@ -68,11 +76,10 @@ export function getQuizQuestions(req, res, next) {
     const quiz = db.prepare(`SELECT id, company_id AS companyId, source_type AS sourceType FROM quizzes WHERE id = ?`).get(quizId);
     if (!quiz) throw new ApiError(404, "Quiz not found");
 
-    if (req.user.role === "Super user") {
-      if (quiz.sourceType === "COMPANY" && quiz.companyId !== req.user.companyId) throw new ApiError(403, "Forbidden");
-    }
-    if (req.user.role === "User") {
-      if (quiz.sourceType === "COMPANY" && quiz.companyId !== req.user.companyId) throw new ApiError(403, "Forbidden");
+    // Make sure the user is allowed to access this quiz
+    if (req.user.role === "Super user" || req.user.role === "User") {
+      if (quiz.sourceType === "COMPANY" && quiz.companyId !== req.user.companyId)
+        throw new ApiError(403, "Forbidden");
     }
 
     const questions = db.prepare(`
@@ -85,6 +92,7 @@ export function getQuizQuestions(req, res, next) {
       FROM question_options WHERE question_id = ? ORDER BY display_order ASC
     `);
 
+    // Attach the options array to each question object
     const result = questions.map((q) => ({
       ...q,
       options: optionsStmt.all(q.id).map((opt) => ({ ...opt, isCorrect: Boolean(opt.isCorrect) })),
@@ -97,6 +105,7 @@ export function getQuizQuestions(req, res, next) {
 }
 
 // PUT /api/quizzes/:quizId/questions/:questionId
+// Updates the question text and/or replaces all its options (old options are deleted and re-inserted).
 export function updateQuestion(req, res, next) {
   try {
     const questionId = Number(req.params.questionId);
@@ -120,7 +129,7 @@ export function updateQuestion(req, res, next) {
         const correctOptions = options.filter((o) => o.isCorrect === true);
         if (correctOptions.length !== 1) throw new ApiError(400, "Exactly one correct option is required");
 
-        // Delete old options and re-insert
+        // Delete old options and insert the new set
         db.prepare(`DELETE FROM question_options WHERE question_id = ?`).run(questionId);
         const optionStmt = db.prepare(`INSERT INTO question_options (question_id, option_text, is_correct, display_order) VALUES (?, ?, ?, ?)`);
         options.forEach((opt, index) => {

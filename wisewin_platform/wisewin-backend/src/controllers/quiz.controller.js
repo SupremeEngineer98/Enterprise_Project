@@ -1,6 +1,10 @@
+// Quiz controller — handles creating, reading, updating, and deleting quizzes.
+// Admins see all quizzes; Super users and regular Users only see quizzes for their company
+// plus platform-wide quizzes (where company_id is NULL).
 import { db } from "../database/db.js";
 import { ApiError } from "../utils/apiError.js";
 
+// GET /api/quizzes — returns all quizzes the logged-in user is allowed to see
 export function getVisibleQuizzes(req, res, next) {
   try {
     let quizzes = [];
@@ -13,6 +17,7 @@ export function getVisibleQuizzes(req, res, next) {
         FROM quizzes q ORDER BY q.id DESC
       `).all();
     } else {
+      // Non-admins can only see global quizzes (company_id IS NULL) or their own company's quizzes
       quizzes = db.prepare(`
         SELECT q.id, q.title, q.description, q.source_type AS sourceType,
                q.company_id AS companyId, q.created_by AS createdBy,
@@ -28,6 +33,8 @@ export function getVisibleQuizzes(req, res, next) {
   }
 }
 
+// POST /api/quizzes — creates a new quiz.
+// sourceType must be "PLATFORM" (admin only) or "COMPANY" (admin or super user).
 export function createQuiz(req, res, next) {
   try {
     const { title, description, sourceType, maxWrongAnswers } = req.body;
@@ -37,6 +44,7 @@ export function createQuiz(req, res, next) {
     if (req.user.role === "Super user" && sourceType !== "COMPANY")
       throw new ApiError(403, "Super user can only create company quizzes");
 
+    // Determine which company the quiz belongs to
     const companyId = sourceType === "COMPANY"
       ? req.user.role === "Super user" ? req.user.companyId : req.body.companyId ?? null
       : null;
@@ -61,7 +69,7 @@ export function createQuiz(req, res, next) {
   }
 }
 
-// PUT /api/quizzes/:quizId
+// PUT /api/quizzes/:quizId — updates quiz fields (only sends the ones that changed)
 export function updateQuiz(req, res, next) {
   try {
     const quizId = Number(req.params.quizId);
@@ -70,6 +78,7 @@ export function updateQuiz(req, res, next) {
     const quiz = db.prepare(`SELECT id, company_id AS companyId, source_type AS sourceType FROM quizzes WHERE id = ?`).get(quizId);
     if (!quiz) throw new ApiError(404, "Quiz not found");
 
+    // Super users can only edit their own company's quizzes
     if (req.user.role === "Super user") {
       if (quiz.sourceType !== "COMPANY" || quiz.companyId !== req.user.companyId)
         throw new ApiError(403, "You cannot edit this quiz");
@@ -84,12 +93,8 @@ export function updateQuiz(req, res, next) {
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
-      title ?? null,
-      description ?? null,
-      maxWrongAnswers ?? null,
-      isActive !== undefined ? 1 : null,
-      isActive ? 1 : 0,
-      quizId
+      title ?? null, description ?? null, maxWrongAnswers ?? null,
+      isActive !== undefined ? 1 : null, isActive ? 1 : 0, quizId
     );
 
     const updated = db.prepare(`
@@ -125,28 +130,22 @@ export function deleteQuiz(req, res, next) {
 }
 
 // POST /api/assignments/quizzes/:quizId/self
+// Lets a regular user assign themselves to a quiz without needing an admin to do it.
 export function selfAssignQuiz(req, res, next) {
   try {
     const quizId = Number(req.params.quizId);
 
-    // check quiz exists
-    const quiz = db.prepare(`
-      SELECT id FROM quizzes WHERE id = ? AND is_active = 1
-    `).get(quizId);
-
+    const quiz = db.prepare(`SELECT id FROM quizzes WHERE id = ? AND is_active = 1`).get(quizId);
     if (!quiz) throw new ApiError(404, "Quiz not found");
 
-    // check if already assigned
+    // Don't create a duplicate assignment if one is already active
     const existing = db.prepare(`
       SELECT id FROM assignments
       WHERE user_id = ? AND quiz_id = ? AND status IN ('ASSIGNED', 'IN_PROGRESS')
     `).get(req.user.sub, quizId);
 
-    if (existing) {
-      throw new ApiError(400, "Quiz already assigned");
-    }
+    if (existing) throw new ApiError(400, "Quiz already assigned");
 
-    // create assignment
     const result = db.prepare(`
       INSERT INTO assignments (user_id, quiz_id, status, attempts_used, created_at)
       VALUES (?, ?, 'ASSIGNED', 0, CURRENT_TIMESTAMP)

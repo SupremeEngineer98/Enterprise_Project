@@ -1,3 +1,6 @@
+// Entry point of the React app.
+// Wraps everything in AuthProvider (so any component can access the logged-in user)
+// and RouterProvider (which renders the correct page based on the URL).
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
@@ -11,4 +14,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <RouterProvider router={router} />
     </AuthProvider>
   </React.StrictMode>
-  );
+);

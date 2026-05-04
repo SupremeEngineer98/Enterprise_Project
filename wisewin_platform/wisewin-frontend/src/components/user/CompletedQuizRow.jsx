@@ -1,3 +1,4 @@
+// A single row in the completed quizzes list — shows title, completion date, and final score
 export default function CompletedQuizRow({ quiz }) {
   return (
     <div className="flex justify-between items-center p-4 rounded-xl bg-white hover:bg-[#f3f1ff] transition-all">

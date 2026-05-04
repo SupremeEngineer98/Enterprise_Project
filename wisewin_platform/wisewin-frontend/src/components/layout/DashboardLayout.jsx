@@ -1,3 +1,4 @@
+// Main layout for all dashboard pages: sidebar on the left, topbar at the top, page content in the middle
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 

@@ -1,7 +1,11 @@
+// User controller — handles creating, updating, deleting users and fetching company stats.
+// Access is role-based: Administrators have full control, Super users manage their own company only.
 import { db } from "../database/db.js";
 import { ApiError } from "../utils/apiError.js";
 import { comparePassword, hashPassword } from "../utils/password.js";
 
+// PUT /api/users/:userId/password — changes a user's password.
+// Users can change their own password (requires old password). Admins can reset anyone's.
 export function changePassword(req, res, next) {
   try {
     const userId = Number(req.params.userId);
@@ -24,6 +28,7 @@ export function changePassword(req, res, next) {
     if (isSuperUser && !isSelf && req.user.companyId !== targetUser.companyId)
       throw new ApiError(403, "You can only manage users of your company");
 
+    // When changing your own password you must prove you know the current one
     if (isSelf) {
       if (!oldPassword) throw new ApiError(400, "oldPassword is required");
       const isValid = comparePassword(oldPassword, targetUser.passwordHash);
@@ -39,6 +44,7 @@ export function changePassword(req, res, next) {
   }
 }
 
+// POST /api/users — creates a new user account under a company
 export function createUser(req, res, next) {
   try {
     const { companyId, email, password, role } = req.body;
@@ -48,6 +54,7 @@ export function createUser(req, res, next) {
     if (req.user.role === "Super user" && role !== "User")
       throw new ApiError(403, "Super user can only create normal users");
 
+    // Super users always create users for their own company
     let resolvedCompanyId = companyId ?? null;
     if (req.user.role === "Super user") resolvedCompanyId = req.user.companyId;
     if (!resolvedCompanyId) throw new ApiError(400, "companyId is required");
@@ -77,6 +84,7 @@ export function createUser(req, res, next) {
   }
 }
 
+// GET /api/users — returns all users across all companies (admin only)
 export function getAllUsers(req, res, next) {
   try {
     const users = db.prepare(`
@@ -93,6 +101,7 @@ export function getAllUsers(req, res, next) {
   }
 }
 
+// PUT /api/users/:userId — updates a user's details (email, role, company, or active status)
 export function updateUser(req, res, next) {
   try {
     const userId = Number(req.params.userId);
@@ -100,20 +109,17 @@ export function updateUser(req, res, next) {
 
     const existing = db.prepare(`
       SELECT u.id, u.company_id AS companyId, r.name AS role
-      FROM users u INNER JOIN roles r ON r.id = u.role_id
-      WHERE u.id = ?
+      FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ?
     `).get(userId);
 
     if (!existing) throw new ApiError(404, "User not found");
 
-    // Super user can only edit users in their own company
+    // Super users can only toggle the active status of users in their own company
     if (req.user.role === "Super user") {
-      if (existing.companyId !== req.user.companyId) {
+      if (existing.companyId !== req.user.companyId)
         throw new ApiError(403, "You can only manage users in your company");
-      }
-      if (email || role || companyId) {
+      if (email || role || companyId)
         throw new ApiError(403, "Super user can only change active status");
-      }
     }
 
     if (email) {
@@ -128,7 +134,7 @@ export function updateUser(req, res, next) {
       roleId = roleRow.id;
     }
 
-    // Fix: convert isActive to SQLite-compatible 1/0/null
+    // Convert isActive to 1/0/null — SQLite doesn't have a real boolean type
     let isActiveDb = null;
     if (isActive === true || isActive === 1 || isActive === "1") isActiveDb = 1;
     else if (isActive === false || isActive === 0 || isActive === "0") isActiveDb = 0;
@@ -141,22 +147,13 @@ export function updateUser(req, res, next) {
         is_active = CASE WHEN ? IS NOT NULL THEN ? ELSE is_active END,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(
-      email ?? null,
-      roleId,
-      companyId ?? null,
-      isActiveDb,
-      isActiveDb,
-      userId
-    );
+    `).run(email ?? null, roleId, companyId ?? null, isActiveDb, isActiveDb, userId);
 
     const updated = db.prepare(`
       SELECT u.id, u.email, u.is_active AS isActive, u.company_id AS companyId,
              c.name AS companyName, r.name AS role
-      FROM users u
-      LEFT JOIN companies c ON c.id = u.company_id
-      INNER JOIN roles r ON r.id = u.role_id
-      WHERE u.id = ?
+      FROM users u LEFT JOIN companies c ON c.id = u.company_id
+      INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ?
     `).get(userId);
 
     return res.status(200).json(updated);
@@ -165,19 +162,18 @@ export function updateUser(req, res, next) {
   }
 }
 
-// ========================= 
-// DELETE USER — unassign only, keep quizzes
-// =========================
+// DELETE /api/users/:userId
+// Removes the user and all their assignment/attempt data in one transaction.
+// Quiz content itself is not deleted — only the user's history of taking quizzes.
 export function deleteUser(req, res, next) {
   try {
     const userId = Number(req.params.userId);
- 
+
     const existing = db.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
     if (!existing) throw new ApiError(404, "User not found");
     if (req.user.sub === userId) throw new ApiError(400, "You cannot delete yourself");
- 
+
     db.transaction(() => {
-     
       db.prepare(`
         DELETE FROM quiz_attempt_answers
         WHERE attempt_id IN (
@@ -186,28 +182,23 @@ export function deleteUser(req, res, next) {
           WHERE qa.user_id = ?
         )
       `).run(userId);
- 
-     
+
       db.prepare(`
         DELETE FROM quiz_attempts
-        WHERE assignment_id IN (
-          SELECT id FROM quiz_assignments WHERE user_id = ?
-        )
+        WHERE assignment_id IN (SELECT id FROM quiz_assignments WHERE user_id = ?)
       `).run(userId);
- 
-     
+
       db.prepare(`DELETE FROM quiz_assignments WHERE user_id = ?`).run(userId);
- 
-   
       db.prepare(`DELETE FROM users WHERE id = ?`).run(userId);
     })();
- 
+
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     next(error);
   }
 }
- 
+
+// GET /api/users/company/:companyId — returns all users for a company with their quiz completion counts
 export function getCompanyUsers(req, res, next) {
   try {
     const companyId = Number(req.params.companyId);
@@ -228,6 +219,7 @@ export function getCompanyUsers(req, res, next) {
   }
 }
 
+// GET /api/users/company/:companyId/stats — returns total, pending, and completed assignment counts for a company
 export function getCompanyAssignmentStats(req, res, next) {
   try {
     const companyId = Number(req.params.companyId);
@@ -253,6 +245,9 @@ export function getCompanyAssignmentStats(req, res, next) {
   }
 }
 
+// GET /api/users/company/:companyId/comparison
+// Returns a leaderboard-style comparison of all regular users in a company:
+// how many quizzes they've completed, how many are pending, and their average score.
 export function getUserComparison(req, res, next) {
   try {
     const companyId = Number(req.params.companyId);

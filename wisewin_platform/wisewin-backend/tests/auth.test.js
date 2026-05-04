@@ -1,3 +1,5 @@
+// Tests for the login and /me endpoints.
+// Covers the main happy paths and the most important error cases.
 import request from "supertest";
 
 let app;
@@ -15,7 +17,7 @@ describe("Auth API", () => {
   test("POST /api/auth/login should fail when email or password is missing", async () => {
     const response = await request(app)
       .post("/api/auth/login")
-      .send({ email: "test@test.com" });
+      .send({ email: "test@test.com" }); // no password
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe("Email and password are required");
@@ -24,10 +26,7 @@ describe("Auth API", () => {
   test("POST /api/auth/login should fail with invalid credentials", async () => {
     const response = await request(app)
       .post("/api/auth/login")
-      .send({
-        email: "notfound@test.com",
-        password: "wrong",
-      });
+      .send({ email: "notfound@test.com", password: "wrong" });
 
     expect(response.status).toBe(401);
   });
@@ -37,10 +36,7 @@ describe("Auth API", () => {
 
     const response = await request(app)
       .post("/api/auth/login")
-      .send({
-        email: testUser.email,
-        password: testUser.password,
-      });
+      .send({ email: testUser.email, password: testUser.password });
 
     expect(response.status).toBe(200);
     expect(response.body.token).toBeDefined();
@@ -50,15 +46,14 @@ describe("Auth API", () => {
   test("GET /api/auth/me should return current user when token is valid", async () => {
     const testUser = createTestUser();
 
+    // First log in to get a token
     const loginResponse = await request(app)
       .post("/api/auth/login")
-      .send({
-        email: testUser.email,
-        password: testUser.password,
-      });
+      .send({ email: testUser.email, password: testUser.password });
 
     const token = loginResponse.body.token;
 
+    // Then use that token to fetch the profile
     const response = await request(app)
       .get("/api/auth/me")
       .set("Authorization", `Bearer ${token}`);
@@ -69,7 +64,6 @@ describe("Auth API", () => {
 
   test("GET /api/auth/me should fail without token", async () => {
     const response = await request(app).get("/api/auth/me");
-
     expect(response.status).toBe(401);
   });
 });

@@ -1,7 +1,10 @@
+// Auth controller — handles login and returning the current user's profile.
 import { loginUser, getCurrentUserById } from "../services/auth.service.js";
 import { signAccessToken } from "../utils/jwt.js";
 import { ApiError } from "../utils/apiError.js";
 
+// POST /api/auth/login
+// Validates credentials, creates a JWT token, and sends it back with the user info.
 export function login(req, res, next) {
   try {
     const { email, password } = req.body;
@@ -23,6 +26,8 @@ export function login(req, res, next) {
   }
 }
 
+// GET /api/auth/me
+// Returns the profile of whoever is currently logged in (identified by their token).
 export function me(req, res, next) {
   try {
     const user = getCurrentUserById(req.user.sub);

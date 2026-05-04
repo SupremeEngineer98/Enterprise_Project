@@ -1,3 +1,4 @@
+// Question service — fetch and create questions for a specific quiz
 import { api } from "./api";
 
 export const questionService = {
