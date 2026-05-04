@@ -10,15 +10,44 @@ export function getMyAssignments(req, res, next) {
         qa.id AS assignmentId,
         qa.quiz_id AS quizId,
         q.title AS quizTitle,
+        q.description AS description,
         qa.status,
-        qa.due_date AS dueDate
+        qa.due_date AS dueDate,
+        (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) AS totalQuestions,
+        (SELECT COUNT(*) FROM quiz_attempts WHERE assignment_id = qa.id) AS attemptsUsed,
+        (SELECT id FROM quiz_attempts
+          WHERE assignment_id = qa.id
+          ORDER BY attempt_number DESC LIMIT 1) AS attemptId,
+        (SELECT passed FROM quiz_attempts
+          WHERE assignment_id = qa.id
+          ORDER BY attempt_number DESC LIMIT 1) AS latestPassed,
+        (SELECT current_score FROM quiz_attempts
+          WHERE assignment_id = qa.id
+          ORDER BY attempt_number DESC LIMIT 1) AS latestScore,
+        (SELECT attempt_number FROM quiz_attempts
+          WHERE assignment_id = qa.id
+          ORDER BY attempt_number DESC LIMIT 1) AS latestAttemptNumber,
+        (SELECT time_taken_seconds FROM quiz_attempts
+          WHERE assignment_id = qa.id
+          ORDER BY attempt_number DESC LIMIT 1) AS latestTimeTaken
       FROM quiz_assignments qa
       JOIN quizzes q ON q.id = qa.quiz_id
       WHERE qa.user_id = ?
       ORDER BY qa.id DESC
     `).all(req.user.sub);
 
+
     res.json(rows);
+
+    const rows = stmt.all(req.user.sub);
+
+    const mapped = rows.map(r => ({
+      ...r,
+      latestPassed: r.latestPassed === null ? null : Boolean(r.latestPassed),
+    }));
+
+    res.json(mapped);
+
   } catch (err) {
     next(err);
   }
