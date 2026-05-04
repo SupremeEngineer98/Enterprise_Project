@@ -36,18 +36,12 @@ export function getMyAssignments(req, res, next) {
       ORDER BY qa.id DESC
     `).all(req.user.sub);
 
-
-    res.json(rows);
-
-    const rows = stmt.all(req.user.sub);
-
     const mapped = rows.map(r => ({
       ...r,
       latestPassed: r.latestPassed === null ? null : Boolean(r.latestPassed),
     }));
 
     res.json(mapped);
-
   } catch (err) {
     next(err);
   }
