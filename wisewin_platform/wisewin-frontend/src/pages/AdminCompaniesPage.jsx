@@ -9,6 +9,7 @@ const sidebarItems = [
   { to: "/admin/users", icon: "group", label: "Users" },
   { to: "/admin/super-users", icon: "manage_accounts", label: "Super Users" },
   { to: "/admin/quizzes", icon: "quiz", label: "Quizzes" },
+    { to: "/admin/create-user", icon: "person_add", label: "Create User" },
 ];
 
 const EMPTY_FORM = { name: "", status: "ACTIVE" };
