@@ -70,6 +70,7 @@ export default function AdminSuperUsersPage() {
   const handleEdit = async () => {
     setEditError("");
     if (!editForm.email?.trim()) { setEditError("Email is required."); return; }
+    if (!editForm.email.includes("@")) { setEditError("Please enter a valid email address."); return; }
     try {
       setEditLoading(true);
       await userService.updateUser(editUser.id, editForm);

@@ -56,6 +56,11 @@ export default function AdminCreateQuizPage() {
     setError("");
     setMessage("");
 
+    if (form.maxWrongAnswers === "" || Number(form.maxWrongAnswers) < 0) {
+      setError("Max Wrong Answers is required and cannot be negative");
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -107,7 +112,7 @@ export default function AdminCreateQuizPage() {
           <div>
             <label className="block text-sm font-medium text-[#454652] mb-2">Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} rows={4}
-              className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666]" />
+              className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666]" required />
           </div>
 
           {/* Quiz type: PLATFORM is global (no company), COMPANY is private to one company */}
@@ -137,7 +142,7 @@ export default function AdminCreateQuizPage() {
           <div>
             <label className="block text-sm font-medium text-[#454652] mb-2">Max Wrong Answers Allowed</label>
             <input type="number" name="maxWrongAnswers" min="0" value={form.maxWrongAnswers} onChange={handleChange}
-              className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666]" />
+              className="w-full rounded-xl border border-[#ddd9f8] bg-[#fcf8ff] px-4 py-3 text-[#000666]" required />
           </div>
 
           <button type="submit" disabled={submitting}

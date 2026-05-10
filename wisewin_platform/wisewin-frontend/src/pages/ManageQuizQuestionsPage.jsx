@@ -14,9 +14,13 @@ export default function ManageQuizQuestionsPage() {
   const sidebarItems =
     user?.role === "Administrator"
       ? [
-          { to: "/admin", icon: "dashboard", label: "Overview" },
-          { to: "/admin/create-user", icon: "person_add", label: "Create User" },
-          { to: "/admin/create-quiz", icon: "quiz", label: "Create Quiz" },
+       { to: "/admin", icon: "dashboard", label: "Overview" },
+       { to: "/admin/companies", icon: "business", label: "Companies" },
+       { to: "/admin/users", icon: "group", label: "Users" },
+       { to: "/admin/super-users", icon: "manage_accounts", label: "Super Users" },
+       { to: "/admin/quizzes", icon: "quiz", label: "Quizzes" },
+       { to: "/admin/create-user", icon: "person_add", label: "Create User" },
+       { to: "/admin/create-quiz", icon: "quiz", label: "Create Quiz" },
         ]
       : [
           { to: "/super-user", icon: "dashboard", label: "Overview" },
