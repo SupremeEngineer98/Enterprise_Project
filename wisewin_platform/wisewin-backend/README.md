@@ -44,17 +44,6 @@ JWT_EXPIRES_IN=1h
 DB_PATH=./wisewin.db
 ```
 
-## Initialize Database
-
-```bash
-npm run db:init
-```
-This will:
-
-- create all tables
-- create indexes
-- insert seed demo data
-
 
 ## Generate API Documentation
 ```bash
@@ -78,7 +67,6 @@ http://localhost:3000
 ```bash
 npm run dev
 npm run start
-npm run db:init
 ```
 
 ## Main API Areas
@@ -112,10 +100,11 @@ npm run db:init
 ### Administrator
 - admin@wisewin.com
 ### Super User
-- super.techflow@company.com
+- super.creative@company.com
 ### Normal Users
-- alice@techflow.com
-- bob@techflow.com
+- test.creative@company.com
+- steven@test.com
+- test2@test.com
 
 Password for demo accounts:
 ```text

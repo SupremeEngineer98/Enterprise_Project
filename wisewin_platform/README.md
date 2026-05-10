@@ -65,7 +65,6 @@ Built with:
 ```bash
 cd wisewin-backend
 npm install
-npm run db:init
 npm run dev
 ```
 
@@ -89,12 +88,13 @@ admin@wisewin.com
 ```
 Super User
 ```text
-super.techflow@company.com
+super.creative@company.com
 ```
 User
 ```text
-alice@techflow.com
-bob@techflow.com
+test.creative@company.com
+steven@test.com
+test2@test.com
 ```
 
 ## Running Tests
@@ -104,8 +104,12 @@ The backend includes automated tests for core functionality:
 - Authentication (login, current user)
 - Quiz attempts (start attempt, answer submission, completion, history)
 
-### Run tests
 
+### Run tests
+1:move into this directory:
+cd Enterprise_Project/wisewin_platform/wisewin-backend/tests
+
+2:run tests with this command:
 ```bash
 npm test
 ```

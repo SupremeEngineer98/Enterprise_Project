@@ -108,9 +108,10 @@ Use backend seeded users to test the UI.
 ### Example accounts:
 
 - admin@wisewin.com
-- super.techflow@company.com
-- alice@techflow.com
-- bob@techflow.com
+- super.creative@company.com
+- test.creative@company.com
+- steven@test.com
+- test2@test.com
 
 ### Password:
 ```text
