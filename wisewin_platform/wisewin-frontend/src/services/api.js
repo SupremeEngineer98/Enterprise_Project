@@ -20,11 +20,14 @@ api.interceptors.request.use((config) => {
 });
 
 // If the server replies with 401 (token expired or invalid), clear the stored session
-// so the user is effectively logged out
+// so the user is effectively logged out.
+// Exception: password-related endpoints return 401 for wrong credentials — don't log the user out in that case.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url ?? "";
+    const isPasswordEndpoint = url.includes("/password") || url.includes("/auth/login");
+    if (error.response?.status === 401 && !isPasswordEndpoint) {
       storage.clear();
     }
     return Promise.reject(error);
