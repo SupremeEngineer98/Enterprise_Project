@@ -197,6 +197,7 @@ export default function SuperUserDashboardPage() {
   const handleEditQuiz = async () => {
     setEditQuizError("");
     if (!editQuizForm.title?.trim()) { setEditQuizError("Title is required."); return; }
+    if (!editQuizForm.description?.trim()) { setEditQuizError("Description is required."); return; }
     try {
       setEditQuizLoading(true);
       await quizService.updateQuiz(editQuiz.id, editQuizForm);
